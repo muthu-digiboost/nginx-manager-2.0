@@ -167,3 +167,28 @@ Describe 'Test-ManagerCompat' {
         (Test-ManagerCompat -PhpExe $php -CodeDir $code).Ok | Should Be $true
     }
 }
+
+Describe 'Find-ExtensionDll (which DLL in a PECL zip is the extension)' {
+    It 'takes php_<name>.dll when the zip has it' {
+        $d = Join-Path $TestDrive 'redis'; New-Item -ItemType Directory -Force $d | Out-Null
+        Set-Content (Join-Path $d 'php_redis.dll') 'x'
+        (Find-ExtensionDll -Folder $d -Ext 'redis').Name | Should Be 'redis'
+    }
+    It 'oci8: one DLL per Oracle client (php_oci8_19.dll) - enabled as oci8_19' {
+        $d = Join-Path $TestDrive 'oci8'; New-Item -ItemType Directory -Force $d | Out-Null
+        Set-Content (Join-Path $d 'php_oci8_19.dll') 'x'
+        $r = Find-ExtensionDll -Folder $d -Ext 'oci8'
+        $r.Name | Should Be 'oci8_19'
+        $r.File.Name | Should Be 'php_oci8_19.dll'
+    }
+    It 'several Oracle variants: the newest client wins (19 before 12c before 11g)' {
+        $d = Join-Path $TestDrive 'oci8multi'; New-Item -ItemType Directory -Force $d | Out-Null
+        foreach ($n in 'php_oci8_11g.dll', 'php_oci8_12c.dll', 'php_oci8_19.dll') { Set-Content (Join-Path $d $n) 'x' }
+        (Find-ExtensionDll -Folder $d -Ext 'oci8').Name | Should Be 'oci8_19'
+    }
+    It 'nothing that matches: $null (another extension''s DLL does not count)' {
+        $d = Join-Path $TestDrive 'none'; New-Item -ItemType Directory -Force $d | Out-Null
+        Set-Content (Join-Path $d 'php_oci8x.dll') 'x'
+        Find-ExtensionDll -Folder $d -Ext 'oci8' | Should Be $null
+    }
+}

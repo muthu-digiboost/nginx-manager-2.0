@@ -521,6 +521,29 @@ function Test-ManagerCompat {
     return [pscustomobject]@{ Ok = ($problems.Count -eq 0); Problems = $problems.ToArray() }
 }
 
+function Find-ExtensionDll {
+    <#
+    .SYNOPSIS  The extension DLL inside an unpacked PECL zip, and the name php.ini enables.
+    .DESCRIPTION
+        Usually php_<ext>.dll (name <ext>). Some extensions ship one DLL per library version
+        instead, e.g. oci8: php_oci8_19.dll (Oracle Instant Client 19) - then the name is
+        oci8_19; with several variants the newest one wins (19 before 12c before 11g).
+        Returns $null when the folder holds neither.
+    #>
+    param([Parameter(Mandatory)][string]$Folder, [Parameter(Mandatory)][string]$Ext)
+    $exact = Get-ChildItem -LiteralPath $Folder -Recurse -File -Filter "php_$Ext.dll" | Select-Object -First 1
+    if ($exact) { return [pscustomobject]@{ File = $exact; Name = $Ext } }
+    $prefix = "php_$($Ext)_"
+    $variants = @(Get-ChildItem -LiteralPath $Folder -Recurse -File -Filter "$prefix*.dll" | ForEach-Object {
+        $suffix = $_.BaseName.Substring($prefix.Length)
+        $num = if ($suffix -match '^(\d+)') { [int]$Matches[1] } else { 0 }
+        [pscustomobject]@{ File = $_; Name = "$($Ext)_$suffix"; Rank = $num }
+    })
+    if ($variants.Count -eq 0) { return $null }
+    $best = $variants | Sort-Object Rank -Descending | Select-Object -First 1
+    return [pscustomobject]@{ File = $best.File; Name = $best.Name }
+}
+
 function Get-VcRuntimeHint {
     <#
     .SYNOPSIS  Which Microsoft Visual C++ runtime a PHP zip needs, from the compiler in its name.

@@ -84,8 +84,13 @@ try {
 
     # -- 3. Copy ------------------------------------------------------------------------------
     $extDir = Join-Path $phpDir 'ext'
-    $main = Get-ChildItem -LiteralPath $work -Recurse -Filter "php_$Ext.dll" | Select-Object -First 1
-    if (-not $main) { throw "The zip does not contain php_$Ext.dll." }
+    # php_<ext>.dll, or a version variant such as php_oci8_19.dll (then php.ini enables oci8_19)
+    $found = Find-ExtensionDll -Folder $work -Ext $Ext
+    if (-not $found) { throw "The zip does not contain php_$Ext.dll (or a variant like php_$($Ext)_19.dll)." }
+    if ($found.Name -ne $Ext) {
+        Write-Out "This extension comes as $($found.File.Name) - enabling it as $($found.Name)"
+        $Ext = $found.Name
+    }
     foreach ($dll in Get-ChildItem -LiteralPath $work -Recurse -Filter '*.dll') {
         if ($dll.Name -like 'php_*.dll') {
             $dest = Join-Path $extDir $dll.Name
