@@ -116,10 +116,14 @@ jobs:
 
       - name: Build and upload to the draft release
         working-directory: desktop
+        # bash on every OS with "stop on the first error": on Windows the default PowerShell
+        # carried on after a failed bundle step and published an installer without nginx/PHP.
+        shell: bash
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'   # no signing certificate: build unsigned
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           npm ci
           npm version "${{ needs.release.outputs.version }}" --no-git-tag-version
           node scripts/bundle.js

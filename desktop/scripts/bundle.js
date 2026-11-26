@@ -62,21 +62,44 @@ function copy(rel, from = ROOT) {
     fs.copyFileSync(path.join(from, ...rel.split('/')), target);
 }
 
-function get(url) {
+function getOnce(url, redirects = 5) {
     return new Promise((resolve, reject) => {
-        https.get(url, { headers: { 'User-Agent': 'nginx-manager-build' } }, (res) => {
-            if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        const req = https.get(url, { headers: { 'User-Agent': 'nginx-manager-build' }, timeout: 120000 }, (res) => {
+            if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && redirects > 0) {
                 res.resume();
-                get(new URL(res.headers.location, url).toString()).then(resolve, reject);
+                getOnce(new URL(res.headers.location, url).toString(), redirects - 1).then(resolve, reject);
                 return;
             }
             if (res.statusCode !== 200) { res.resume(); reject(new Error(`HTTP ${res.statusCode} for ${url}`)); return; }
             const chunks = [];
             res.on('data', (c) => chunks.push(c));
             res.on('end', () => resolve(Buffer.concat(chunks)));
-        }).on('error', reject);
+            res.on('error', reject);
+        });
+        req.on('timeout', () => req.destroy(new Error(`timeout for ${url}`)));
+        req.on('error', reject);
     });
 }
+
+/** GET with 3 tries per URL; several URLs = official mirrors tried in order. */
+async function get(urls) {
+    let last = null;
+    for (const url of [].concat(urls)) {
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                return await getOnce(url);
+            } catch (e) {
+                last = e;
+                log(`download failed (${attempt}/3): ${e.message}`);
+                await new Promise((r) => setTimeout(r, 2000 * attempt));
+            }
+        }
+    }
+    throw last;
+}
+
+/** php.net's Windows downloads, and its second official address. */
+const PHP_BASES = ['https://windows.php.net/downloads/releases/', 'https://downloads.php.net/~windows/releases/'];
 
 /** Official nginx for Windows from nginx.org, checked against the pinned SHA-256. */
 const NGINX = { version: '1.26.3', sha256: '39ca13277b361910f9e463a7e958e11566f7ede8a6f0df08a21b659ca92f3662' };
@@ -103,7 +126,7 @@ async function bundleNginx() {
 }
 
 async function bundlePhp() {
-    const releases = JSON.parse((await get('https://windows.php.net/downloads/releases/releases.json')).toString('utf8'));
+    const releases = JSON.parse((await get(PHP_BASES.map((b) => b + 'releases.json'))).toString('utf8'));
     const branch = releases[PHP_BRANCH];
     if (!branch) throw new Error(`php.net lists no PHP ${PHP_BRANCH}`);
     const key = Object.keys(branch).find((k) => /^ts-vs\d+-x64$/.test(k));
@@ -114,7 +137,7 @@ async function bundlePhp() {
     const zipFile = path.join(CACHE, path.basename(zip.path));
     if (!fs.existsSync(zipFile)) {
         log(`downloading ${zip.path} from php.net`);
-        fs.writeFileSync(zipFile, await get('https://windows.php.net/downloads/releases/' + zip.path));
+        fs.writeFileSync(zipFile, await get(PHP_BASES.map((b) => b + zip.path)));
     }
     const sha = crypto.createHash('sha256').update(fs.readFileSync(zipFile)).digest('hex');
     if (sha.toLowerCase() !== String(zip.sha256).toLowerCase()) {
@@ -141,6 +164,14 @@ async function bundlePhp() {
 /** Fails when anything private could have slipped into the bundle. */
 function safetyCheck() {
     const files = listAll(OUT);
+
+    // Complete? A new PC must get everything it needs (an incomplete installer was once published).
+    const required = ['manager/bin/manager.php', 'start-all.ps1', 'start-all.sh', 'conf/nginx.conf', '.env.example'];
+    if (TARGET === 'win32') {
+        required.push('nginx.exe', `php/${PHP_BRANCH}/php.exe`, `php/${PHP_BRANCH}/php-cgi.exe`, `php/${PHP_BRANCH}/php.ini`);
+    }
+    const missing = required.filter((rel) => !files.includes(rel));
+    if (missing.length) throw new Error('The bundle is incomplete - missing:\n  ' + missing.join('\n  '));
     const forbidden = files.filter((rel) =>
         rel === '.env'
         || (/^data\//.test(rel) && rel !== 'data/.gitkeep')
