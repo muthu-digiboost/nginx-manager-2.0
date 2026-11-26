@@ -105,6 +105,12 @@ async function main() {
         base = await pickFolder({ explain: true });
         if (!base) { app.quit(); return; }
     }
+    if (setup.installedVersion(base) !== null) {
+        // A folder the app created (also by an older version): keep the uninstaller's record
+        // current, so the uninstall page can offer to delete it.
+        const remember = setup.rememberCommand(process.platform, base);
+        if (remember) scripts.run(remember, { timeoutMs: 15000 });
+    }
     if (bundleDir && setup.needsUpdate(base, app.getVersion())) {
         // The app was updated: refresh the manager's code in the folder it set up (data untouched).
         setup.apply(bundleDir, base, app.getVersion());
@@ -496,6 +502,9 @@ async function setupNew(bundleDir) {
         return setupNew(bundleDir);
     }
     config.save(settingsFile, { base: dest });
+    // Tell the uninstaller which folder the app created (only that one may be offered for deletion).
+    const remember = setup.rememberCommand(process.platform, dest);
+    if (remember) await scripts.run(remember, { timeoutMs: 15000 });
     await checkPhpRuns(dest);
     return dest;
 }

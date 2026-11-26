@@ -38,14 +38,15 @@
 #>
 [CmdletBinding()]
 param([switch]$NoPause,
-    [switch]$NoElevate)
+    [switch]$NoElevate,
+    [switch]$WaitElevated)   # wait for the elevated run to finish (used by the app's uninstaller)
 
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'scripts\lib\Common.psm1') -Force
 
 $passArgs = @()
 if ($NoPause) { $passArgs += '-NoPause' }
-if (-not $NoElevate) { Invoke-SelfElevate -ScriptPath $PSCommandPath -Arguments $passArgs }
+if (-not $NoElevate) { Invoke-SelfElevate -ScriptPath $PSCommandPath -Arguments $passArgs -Wait:$WaitElevated }
 
 $exitCode = 0
 try {

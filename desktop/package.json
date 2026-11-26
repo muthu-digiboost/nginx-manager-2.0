@@ -82,7 +82,9 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Nginx Manager"
+      "shortcutName": "Nginx Manager",
+      "include": "build/installer.nsh",
+      "deleteAppDataOnUninstall": true
     },
     "mac": {
       "target": [

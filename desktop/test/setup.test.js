@@ -114,3 +114,11 @@ test('default folder: C:\\NginxManager on Windows, ~/NginxManager on macOS', () 
     assert.strictEqual(setup.defaultFolder('win32', 'C:\\Users\\me'), 'C:\\NginxManager');
     assert.strictEqual(setup.defaultFolder('darwin', '/Users/me'), '/Users/me/NginxManager');
 });
+
+test('Windows: the folder the app set up is recorded for the uninstaller (HKCU, no admin needed)', () => {
+    assert.deepStrictEqual(setup.rememberCommand('win32', 'C:\\NginxManager'), {
+        file: 'reg.exe',
+        args: ['add', 'HKCU\\Software\\Nginx Manager', '/v', 'SetupFolder', '/t', 'REG_SZ', '/d', 'C:\\NginxManager', '/f'],
+    });
+    assert.strictEqual(setup.rememberCommand('darwin', '/Users/me/NginxManager'), null);   // no uninstaller on macOS
+});

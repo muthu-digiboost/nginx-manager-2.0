@@ -642,10 +642,17 @@ function Invoke-SelfElevate {
     #>
     param(
         [Parameter(Mandatory)][string]$ScriptPath,
-        [string[]]$Arguments = @()
+        [string[]]$Arguments = @(),
+        # Wait for the elevated copy to finish (the desktop app's uninstaller stops the
+        # servers this way before deleting the Nginx Manager folder).
+        [switch]$Wait
     )
     if (Test-IsAdmin) { return }
     $argLine = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $ScriptPath + '"')) + $Arguments
+    if ($Wait) {
+        $p = Start-Process -FilePath 'powershell.exe' -Verb RunAs -ArgumentList ($argLine -join ' ') -Wait -PassThru
+        exit $p.ExitCode
+    }
     Start-Process -FilePath 'powershell.exe' -Verb RunAs -ArgumentList ($argLine -join ' ') | Out-Null
     exit 0
 }

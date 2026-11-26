@@ -99,8 +99,18 @@ function needsUpdate(dest, version) {
     return v !== null && compare(version, v) > 0;
 }
 
+/**
+ * Windows: records the folder the app set up (HKCU\Software\Nginx Manager\SetupFolder), so
+ * the uninstaller can offer to delete it - and ONLY that folder (never one the app did not
+ * create, like a developer's checkout). macOS has no uninstaller: null.
+ */
+function rememberCommand(platform, dest) {
+    if (platform !== 'win32') return null;
+    return { file: 'reg.exe', args: ['add', 'HKCU\\Software\\Nginx Manager', '/v', 'SetupFolder', '/t', 'REG_SZ', '/d', dest, '/f'] };
+}
+
 function defaultFolder(platform, home) {
     return platform === 'win32' ? 'C:\\NginxManager' : path.posix.join(home, 'NginxManager');
 }
 
-module.exports = { isProtected, listFiles, apply, installedVersion, needsUpdate, defaultFolder };
+module.exports = { isProtected, listFiles, apply, installedVersion, needsUpdate, rememberCommand, defaultFolder };
