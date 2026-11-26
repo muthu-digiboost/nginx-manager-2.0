@@ -79,6 +79,16 @@ $running = count(array_filter($php, fn($v) => $v['running']));
                 <span class="glance-label">SSL certificates</span>
             </a>
         </div>
+        <?php
+        $managerPhp = array_values(array_filter($php, static fn($v) => $v['isManager']))[0] ?? null;
+        $httpsCount = (int) ($httpsCount ?? 0);
+        ?>
+        <dl class="glance-facts">
+            <div><dt>Manager runs on</dt><dd><?= $managerPhp ? 'PHP ' . e($managerPhp['version'] !== '' ? $managerPhp['version'] : $managerPhp['id']) : '-' ?></dd></div>
+            <div><dt>Sites on HTTPS</dt><dd><?= $httpsCount ?> of <?= (int) $siteCount ?></dd></div>
+            <div><dt>Web ports</dt><dd><?= e($webPorts ?? '80 (HTTP) · 443 (HTTPS)') ?></dd></div>
+            <div><dt>Manager address</dt><dd class="mono"><?= e($managerUrl ?? 'http://127.0.0.1:8080') ?></dd></div>
+        </dl>
     </section>
 
     <section class="card">

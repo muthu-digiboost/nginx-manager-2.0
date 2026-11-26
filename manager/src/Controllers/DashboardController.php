@@ -52,6 +52,10 @@ final class DashboardController
             'siteDisabled' => $disabled,
             'jobs'         => $this->app->jobs()->recent(6),
             'siteCounts'   => array_count_values(array_map(static fn($s) => (string) $s->parsed->upstream, $sites)),
+            // "Server" summary under the At a Glance tiles (no shell calls - just settings)
+            'httpsCount'   => count(array_filter($sites, static fn($s) => $s->parsed->ssl)),
+            'webPorts'     => \NginxManager\Support\Env::int('NGINX_HTTP_PORT', 80) . ' (HTTP) · ' . \NginxManager\Support\Env::int('NGINX_HTTPS_PORT', 443) . ' (HTTPS)',
+            'managerUrl'   => 'http://' . \NginxManager\Support\Env::get('MANAGER_HOST', '127.0.0.1') . ':' . \NginxManager\Support\Env::int('MANAGER_PORT', 8080),
         ]));
     }
 }

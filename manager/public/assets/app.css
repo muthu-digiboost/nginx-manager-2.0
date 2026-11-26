@@ -695,3 +695,13 @@ a.chip:hover { border-color: var(--primary); color: var(--primary); text-decorat
        buttons (Manage sites / Edit / Delete) always sit at the bottom ------------------------ */
 .group-cards { align-items: stretch; }
 .group-card .gsites { flex: 1 1 auto; }
+
+/* 38. Dashboard: At a Glance and Activity share one height; the "Server" facts under the
+       tiles use the space instead of leaving it empty -------------------------------------- */
+.widgets.two { align-items: stretch; }
+.widgets.two > .card { display: flex; flex-direction: column; }
+.glance-facts { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line-soft); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; flex: 1 1 auto; align-content: stretch; }
+.glance-facts div { display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 8px 10px; background: var(--panel-alt); border-radius: 4px; min-width: 0; }
+.glance-facts dt { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+.glance-facts dd { margin: 0; font-weight: 600; color: var(--text-strong); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.glance-facts dd.mono { font-weight: 500; font-size: 12.5px; }
