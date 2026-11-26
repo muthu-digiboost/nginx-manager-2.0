@@ -533,12 +533,12 @@ function Get-VcRuntimeHint {
     $arch    = if ($ZipName -match '-x86\.zip$') { 'x86' } else { 'x64' }
     if ($ZipName -match '-(vc|vs)(\d+)-') {
         switch ([int]$Matches[2]) {
-            9       { return "Microsoft Visual C++ 2008 Redistributable ($arch) - see $older" }
-            11      { return "Microsoft Visual C++ 2012 Redistributable ($arch) - see $older" }
-            default { return "Microsoft Visual C++ 2015-2022 Redistributable (x64), latest version - $current" }
+            9       { return "Microsoft Visual C++ 2008 Redistributable ($arch) (download: $older)" }
+            11      { return "Microsoft Visual C++ 2012 Redistributable ($arch) (download: $older)" }
+            default { return "Microsoft Visual C++ 2015-2022 Redistributable (x64), latest version (download: $current)" }
         }
     }
-    return "the Microsoft Visual C++ Redistributable that matches this PHP build - see $older"
+    return "the Microsoft Visual C++ Redistributable that matches this PHP build (download: $older)"
 }
 
 function Get-PhpVersionById {

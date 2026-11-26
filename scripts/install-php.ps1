@@ -123,7 +123,7 @@ try {
     # -- 4. Smoke test -------------------------------------------------------------------
     $probe = Invoke-Native -FilePath (Join-Path $staging 'php.exe') -Arguments @('-n', '-v')
     if ($probe.ExitCode -ne 0) {
-        throw ("This PHP build does not run on this machine (exit code {0}). Install {1} from Microsoft, then try again." -f $probe.ExitCode, (Get-VcRuntimeHint $ZipName))
+        throw ("This PHP build does not run on this machine (exit code {0}). Install {1}, then try again." -f $probe.ExitCode, (Get-VcRuntimeHint $ZipName))
     }
     Write-Out (($probe.Output -split "`n")[0]) 'ok'
 
