@@ -1,0 +1,17 @@
+#!/bin/bash
+#******************************************************************************
+#*
+#*  Project : nginx-manager-2.0
+#*  File    : post-commit
+#*  Date    : 26/11/2026
+#*  Author  : Semansys Development Team
+#*
+#*  Copyright (c) 2026
+#*  Tel: +91 97863 37914
+#*  Email: dev.digiboost.muthu@gmail.com
+#*  All rights reserved, see the LICENSE file for more information.
+#*
+#******************************************************************************
+# Git post-commit hook: rebuilds the desktop app when this happens on the build branch.
+# See rebuild-desktop.sh. Enabled with: git config core.hooksPath .githooks
+exec bash "$(dirname "$0")/rebuild-desktop.sh"

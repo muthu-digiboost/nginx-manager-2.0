@@ -1,0 +1,16 @@
+Nginx Manager 2.0
+Copyright (c) 2026 Semansys Development Team. All rights reserved.
+
+Tel: +91 97863 37914
+Email: dev.digiboost.muthu@gmail.com
+
+This software and its source code are proprietary and confidential. No part of it
+may be copied, modified, distributed, sublicensed or used outside Semansys without
+prior written permission from the copyright holder.
+
+Third-party components keep their own licenses:
+  - nginx            : docs/nginx/LICENSE (2-clause BSD)
+  - OpenSSL, PCRE, zlib (bundled in nginx.exe): docs/nginx/*.LICENSE / *.LICENCE
+  - PHP (downloaded into php/ per machine): https://www.php.net/license/
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.

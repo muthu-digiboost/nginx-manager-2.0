@@ -1,0 +1,74 @@
+{
+  "//": [
+    "******************************************************************************",
+    "  Project : nginx-manager-2.0",
+    "  File    : package.json",
+    "  Date    : 26/11/2026",
+    "  Author  : Semansys Development Team",
+    "  Copyright (c) 2026",
+    "  Tel: +91 97863 37914",
+    "  Email: dev.digiboost.muthu@gmail.com",
+    "  All rights reserved, see the LICENSE file for more information.",
+    "******************************************************************************",
+    "Nginx Manager desktop app (Electron): its own window for the manager UI, servers in",
+    "the background, a tray / menu-bar icon. See docs/superpowers/specs/2026-11-26-desktop-app-design.md"
+  ],
+  "name": "nginx-manager-desktop",
+  "productName": "Nginx Manager",
+  "version": "2.0.0",
+  "description": "Nginx Manager desktop app - nginx + multi-PHP development server",
+  "author": "Semansys Development Team",
+  "license": "SEE LICENSE IN ../LICENSE",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/run.js",
+    "icons": "electron scripts/make-icons.js",
+    "bundle": "node scripts/bundle.js",
+    "dist": "node scripts/bundle.js && electron-builder",
+    "dist:win": "node scripts/bundle.js && electron-builder --win",
+    "dist:mac": "node scripts/bundle.js && electron-builder --mac"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "devDependencies": {
+    "electron": "^45.5.0",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.semansys.nginx-manager",
+    "productName": "Nginx Manager",
+    "copyright": "Copyright (c) 2026 Semansys Development Team",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "extraResources": [
+      { "from": "bundle/nginx-manager", "to": "nginx-manager" }
+    ],
+    "files": [
+      "main.js",
+      "lib/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Nginx Manager"
+    },
+    "mac": {
+      "target": [{ "target": "dmg", "arch": ["universal"] }],
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.png"
+    }
+  }
+}

@@ -1,0 +1,109 @@
+#******************************************************************************
+#*
+#*  Project : nginx-manager-2.0
+#*  File    : desktop.yml
+#*  Date    : 26/11/2026
+#*  Author  : Semansys Development Team
+#*
+#*  Copyright (c) 2026
+#*  Tel: +91 97863 37914
+#*  Email: dev.digiboost.muthu@gmail.com
+#*  All rights reserved, see the LICENSE file for more information.
+#*
+#******************************************************************************
+#
+# Every push to main: run all tests, then rebuild the desktop app for Windows (installer)
+# and macOS (.dmg). The builds are attached to the run as artifacts ("Nginx Manager -
+# Windows" / "Nginx Manager - macOS"). Can also be started by hand (Actions > Run workflow).
+# The builds are not code-signed (no certificates in the repo).
+
+name: Desktop app
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, openssl
+
+      - name: PHP tests
+        run: php tests/run.php
+
+      - name: PowerShell tests (Pester 3.4, built into Windows PowerShell 5.1)
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'        # a blocked or broken run must fail the step
+          Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+          Import-Module Pester -RequiredVersion 3.4.0 -Force
+          & .\tests\ps\run.ps1
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Desktop app tests
+        working-directory: desktop
+        run: |
+          npm ci
+          npm test
+
+  build:
+    name: Build (${{ matrix.name }})
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+            target: --win
+            files: desktop/dist/*.exe
+          - os: macos-latest
+            name: macOS
+            target: --mac
+            files: desktop/dist/*.dmg
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Build
+        working-directory: desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'   # no signing certificate: build unsigned
+        run: |
+          npm ci
+          npx electron-builder ${{ matrix.target }} --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nginx Manager - ${{ matrix.name }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+          retention-days: 30

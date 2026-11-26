@@ -1,0 +1,70 @@
+{
+    "7.4": {
+        "version": "7.4.33",
+        "ts-vc15-x64": {
+            "zip": {
+                "path": "php-7.4.33-Win32-vc15-x64.zip",
+                "size": "25.02MB",
+                "sha256": "cdbb85b45f38f282f05764ca08648b5f92db99c75b2fb3848eb4a559f6553b48"
+            }
+        },
+        "nts-vc15-x64": {
+            "zip": {
+                "path": "php-7.4.33-nts-Win32-vc15-x64.zip",
+                "size": "24.92MB",
+                "sha256": "14ae3250d4447c8ccfc4c45a70d90adfbcd61e728d85f0be56a7ddf8f9c8aace"
+            }
+        }
+    },
+    "8.3": {
+        "version": "8.3.37",
+        "ts-vs16-x64": {
+            "zip": {
+                "path": "php-8.3.37-Win32-vs16-x64.zip",
+                "size": "32.75MB",
+                "sha256": "07984bdcfd4391888954c2e73b1cf2c0d403cfa5fd8cb32ad60ddcd854c6b7de"
+            }
+        },
+        "nts-vs16-x64": {
+            "zip": {
+                "path": "php-8.3.37-nts-Win32-vs16-x64.zip",
+                "size": "32.6MB",
+                "sha256": "38808a798485e1c0938dfcce7e942131415fc6c7834f83a5a85a4c4edb5539d6"
+            }
+        }
+    },
+    "8.4": {
+        "version": "8.4.28",
+        "ts-vs17-x64": {
+            "zip": {
+                "path": "php-8.4.28-Win32-vs17-x64.zip",
+                "size": "33.91MB",
+                "sha256": "59ccaa095d0f0c3fbb9f7e2bfd86713ebac032d5783cc22bc8934e2285629999"
+            }
+        },
+        "nts-vs17-x64": {
+            "zip": {
+                "path": "php-8.4.28-nts-Win32-vs17-x64.zip",
+                "size": "33.74MB",
+                "sha256": "c1f9280588b7b6ad7b518969022f0b0175f106fab9d0639ad0e4ce7cd47ac1ed"
+            }
+        }
+    },
+    "8.6": {
+        "version": "8.6.0",
+        "ts-vs18-x64": {
+            "zip": {
+                "path": "php-8.6.0-Win32-vs18-x64.zip",
+                "size": "37.89MB",
+                "sha256": "daf3639addc12197bfea7aff8797edc78939f5d8809e0cced49d899347c337b0"
+            }
+        },
+        "nts-vs18-x64": {
+            "zip": {
+                "path": "php-8.6.0-nts-Win32-vs18-x64.zip",
+                "size": "37.82MB",
+                "sha256": "d4783fffe1f4ab072600daff1622a7a2df936957a787a338c59e3dbd4d846d98"
+            }
+        }
+    }
+}

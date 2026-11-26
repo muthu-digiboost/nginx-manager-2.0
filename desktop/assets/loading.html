@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<!--
+******************************************************************************
+*
+*  Project : nginx-manager-2.0
+*  File    : loading.html
+*  Date    : 26/11/2026
+*  Author  : Semansys Development Team
+*
+*  Copyright (c) 2026
+*  Tel: +91 97863 37914
+*  Email: dev.digiboost.muthu@gmail.com
+*  All rights reserved, see the LICENSE file for more information.
+*
+******************************************************************************
+  Shown by the desktop app while the servers start (or when they could not be started).
+  Query: ?state=starting|error&msg=<text>. No scripts from outside; no Node access.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' data:">
+<title>Nginx Manager</title>
+<style>
+    html, body { height: 100%; margin: 0; }
+    body { display: flex; align-items: center; justify-content: center; background: #f0f0f1;
+           font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1d2327; }
+    .box { text-align: center; max-width: 460px; padding: 32px; background: #fff; border: 1px solid #dcdcde; border-radius: 6px; }
+    h1 { font-size: 18px; margin: 16px 0 6px; }
+    p { margin: 0; color: #50575e; }
+    .spin { width: 34px; height: 34px; margin: 0 auto; border: 3px solid #dcdcde; border-top-color: #2271b1;
+            border-radius: 50%; animation: spin .9s linear infinite; }
+    .error .spin { display: none; }
+    .error h1 { color: #b32d2e; }
+    pre { text-align: left; white-space: pre-wrap; font-size: 12px; background: #f6f7f7; padding: 10px; border-radius: 4px; max-height: 180px; overflow: auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="box" id="box">
+    <div class="spin"></div>
+    <h1 id="title">Starting Nginx Manager...</h1>
+    <p id="msg">Starting nginx and PHP. On Windows, allow the Administrator prompt.</p>
+</div>
+<script>
+    var q = new URLSearchParams(location.search);
+    if (q.get('state') === 'error') {
+        document.getElementById('box').className = 'box error';
+        document.getElementById('title').textContent = 'The servers did not start';
+        var p = document.getElementById('msg');
+        p.textContent = 'Use Start all in the tray icon menu to try again.';
+        if (q.get('msg')) {
+            var pre = document.createElement('pre');
+            pre.textContent = q.get('msg');
+            p.after(pre);
+        }
+    } else if (q.get('msg')) {
+        document.getElementById('msg').textContent = q.get('msg');
+    }
+</script>
+</body>
+</html>

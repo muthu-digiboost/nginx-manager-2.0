@@ -1,0 +1,22 @@
+#******************************************************************************
+#*
+#*  Project : nginx-manager-2.0
+#*  File    : .gitattributes
+#*  Date    : 26/11/2026
+#*  Author  : Semansys Development Team
+#*
+#*  Copyright (c) 2026
+#*  Tel: +91 97863 37914
+#*  Email: dev.digiboost.muthu@gmail.com
+#*  All rights reserved, see the LICENSE file for more information.
+#*
+#******************************************************************************
+
+# Normalise line endings in the repo; PowerShell and batch keep CRLF on checkout.
+* text=auto eol=lf
+*.ps1  text eol=crlf
+*.psm1 text eol=crlf
+*.cmd  text eol=crlf
+*.exe  binary
+*.dll  binary
+*.sh   text eol=lf

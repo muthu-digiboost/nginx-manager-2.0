@@ -1,0 +1,67 @@
+#******************************************************************************
+#*
+#*  Project : nginx-manager-2.0
+#*  File    : _template.conf.example
+#*  Date    : 26/11/2026
+#*  Author  : Semansys Development Team
+#*
+#*  Copyright (c) 2026
+#*  Tel: +91 97863 37914
+#*  Email: dev.digiboost.muthu@gmail.com
+#*  All rights reserved, see the LICENSE file for more information.
+#*
+#******************************************************************************
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  File   : conf/sites/_template.conf.example
+#  Purpose: Hand-written starting point for a site config. The Manager UI
+#           (Sites → New Site) generates the same shape for you - prefer that.
+#
+#  HOW TO USE THIS TEMPLATE BY HAND
+#  1. Copy this file to conf/sites/your-domain.conf
+#  2. Replace YOUR_DOMAIN with your domain name
+#  3. Replace YOUR_PROJECT with the project's path RELATIVE to PROJECTS_DIR (.env),
+#     e.g. backporch/nmc/public  →  root $projects_dir/backporch/nmc/public;
+#     (another root from .env: PROJECTS_DIR_D → $projects_dir_d/...)
+#  4. Replace phpXX with the PHP upstream (see conf/generated/upstreams.conf)
+#  5. Certificates live in ssl/YOUR_DOMAIN/ (paths below are relative to conf/)
+#  6. Add "127.0.0.1 YOUR_DOMAIN" to %SystemRoot%\System32\drivers\etc\hosts
+#  7. Run reload-nginx.ps1 to apply
+#  Never write absolute (drive-letter) paths into site configs.
+# ──────────────────────────────────────────────────────────────────────────────
+
+server {
+    listen       443 ssl;
+    server_name  YOUR_DOMAIN;
+
+    ssl_certificate      ../ssl/YOUR_DOMAIN/ssl.crt/server.crt;
+    ssl_certificate_key  ../ssl/YOUR_DOMAIN/ssl.key/server.key;
+
+    root  $projects_dir/YOUR_PROJECT;
+    index index.php index.html;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        fastcgi_pass   phpXX;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include        fastcgi_params;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+
+    error_log   logs/YOUR_DOMAIN-error.log;
+    access_log  logs/YOUR_DOMAIN-access.log;
+}
+
+# HTTP → HTTPS redirect
+server {
+    listen      80;
+    server_name YOUR_DOMAIN;
+    return 301  https://$host$request_uri;
+}

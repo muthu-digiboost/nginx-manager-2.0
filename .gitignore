@@ -1,0 +1,55 @@
+#******************************************************************************
+#*
+#*  Project : nginx-manager-2.0
+#*  File    : .gitignore
+#*  Date    : 26/11/2026
+#*  Author  : Semansys Development Team
+#*
+#*  Copyright (c) 2026
+#*  Tel: +91 97863 37914
+#*  Email: dev.digiboost.muthu@gmail.com
+#*  All rights reserved, see the LICENSE file for more information.
+#*
+#******************************************************************************
+
+# =============================================================================
+#  Nginx Manager 2.0 - .gitignore
+#  The repository holds CODE and TEMPLATES only. Everything that differs per
+#  machine (sites, certificates, installed runtimes, state) stays out of git so
+#  the same checkout works on any machine: clone, copy .env.example to .env,
+#  install nginx.exe + php/, run start-all.ps1.
+# =============================================================================
+
+# machine config
+.env
+
+# runtime binaries (installed per machine)
+/nginx.exe
+/php/
+
+# site data - differs per machine
+/conf/sites/*
+!/conf/sites/_template.conf.example
+!/conf/sites/.gitkeep
+/ssl/*
+!/ssl/configuration.conf
+!/ssl/.gitkeep
+/data/*
+!/data/.gitkeep
+
+# generated / runtime
+/conf/generated/
+/conf/manager/
+/logs/
+/temp/
+/backups/
+
+# tooling
+.idea/
+.superpowers/
+
+# Desktop app (Electron): dependencies and build output
+/desktop/node_modules/
+/desktop/dist/
+/desktop/bundle/
+/desktop/.cache/
