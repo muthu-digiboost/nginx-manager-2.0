@@ -165,6 +165,9 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
+          # "Nginx Manager-2.0.x-universal.dmg" -> "Nginx-Manager-..." (the name latest-mac.yml
+          # uses; GitHub's uploader would otherwise turn the space into a dot)
+          for f in dist/*" "*.dmg dist/*" "*.dmg.blockmap; do mv "$f" "${f// /-}"; done
           files=(dist/*.dmg dist/*.dmg.blockmap dist/latest-mac.yml)
           [ ${#files[@]} -gt 0 ] || { echo "no macOS build found"; exit 1; }
           gh release upload "v${{ needs.release.outputs.version }}" "${files[@]}" --repo "${{ github.repository }}" --clobber
