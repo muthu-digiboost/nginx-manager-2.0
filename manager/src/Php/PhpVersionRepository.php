@@ -89,6 +89,13 @@ final class PhpVersionRepository
                 'exists'       => is_file($paths->cgi),
             ];
         }
+        // Always oldest -> newest by version number (7.4, 8.2, ... 8.10), whatever order the
+        // versions were installed in; the folder name decides when the versions are equal.
+        usort($list, static function (array $a, array $b): int {
+            $va = $a['version'] !== '' ? $a['version'] : $a['id'];
+            $vb = $b['version'] !== '' ? $b['version'] : $b['id'];
+            return version_compare($va, $vb) ?: strnatcmp($a['id'], $b['id']);
+        });
         return $list;
     }
 

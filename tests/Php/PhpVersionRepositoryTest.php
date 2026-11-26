@@ -47,6 +47,22 @@ test('installed versions carry branch, running and manager flags', function () {
     assertSame([false, true, false], array_column($list, 'isManager'));
 });
 
+test('installed versions are listed in ascending version order, whatever order they were installed in', function () {
+    $base = tempDir();
+    Paths::overrideBase($base);
+    JsonStore::write($base . '/data/settings.json', ['php' => ['managerVersion' => '8.5', 'versions' => [
+        ['id' => '8.5', 'port' => 9085, 'upstream' => 'php85', 'version' => '8.5.12'],
+        ['id' => '7.4', 'port' => 9074, 'upstream' => 'php74', 'version' => '7.4.33'],
+        ['id' => '8.10', 'port' => 9110, 'upstream' => 'php810', 'version' => '8.10.0'],   // numeric, not text order
+        ['id' => '8.2', 'port' => 9082, 'upstream' => 'php82', 'version' => '8.2.29'],
+        ['id' => '8.4.1', 'port' => 9101, 'upstream' => 'php841', 'version' => '8.4.1'],
+        ['id' => '8.4', 'port' => 9084, 'upstream' => 'php84', 'version' => '8.4.15'],
+        ['id' => '8.3', 'port' => 9083, 'upstream' => 'php83', 'version' => '8.3.30'],
+    ]]]);
+    $list = (new PhpVersionRepository(Settings::load(), fn(int $port) => false))->installed();
+    assertSame(['7.4', '8.2', '8.3', '8.4.1', '8.4', '8.5', '8.10'], array_column($list, 'id'));
+});
+
 test('autostart defaults to off except for the manager version', function () {
     $list = phpRepo()->installed();
     assertSame([false, true, true], array_column($list, 'autostart'));
