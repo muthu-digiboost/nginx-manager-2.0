@@ -33,18 +33,19 @@ certificate, and do all of it from the web UI - no hand-editing of config files.
 ## Contents
 
 1. [Features](#features)
-2. [Quick start](#quick-start) (Windows)
-3. [macOS](#macos)
-4. [Desktop app](#desktop-app)
-5. [Using the manager](#using-the-manager)
-6. [How it works](#how-it-works)
-7. [Folder layout](#folder-layout)
-8. [Scripts](#scripts)
-9. [Security](#security)
-10. [Backups and recovery](#backups-and-recovery)
-11. [Moving to another machine](#moving-to-another-machine)
-12. [Troubleshooting](#troubleshooting)
-13. [Development](#development)
+2. [Screenshots](#screenshots)
+3. [Quick start](#quick-start) (Windows)
+4. [macOS](#macos)
+5. [Desktop app](#desktop-app)
+6. [Using the manager](#using-the-manager)
+7. [How it works](#how-it-works)
+8. [Folder layout](#folder-layout)
+9. [Scripts](#scripts)
+10. [Security](#security)
+11. [Backups and recovery](#backups-and-recovery)
+12. [Moving to another machine](#moving-to-another-machine)
+13. [Troubleshooting](#troubleshooting)
+14. [Development](#development)
 
 ---
 
@@ -78,6 +79,48 @@ certificate, and do all of it from the web UI - no hand-editing of config files.
   live log; the page reconnects even when the manager's own PHP restarts.
 - **Desktop app** - optional Windows / macOS app with its own window and a tray icon; the
   servers keep running in the background (see [Desktop app](#desktop-app)).
+
+## Screenshots
+
+Domain names, project folders and group names are blurred.
+
+**Dashboard** - server status, counts, recent activity and the PHP versions you star.
+
+![Dashboard](docs/screenshots/dashboard.jpg)
+
+**Sites** - grouped list with search, filters, PHP version, HTTPS and on/off per site.
+
+![Sites](docs/screenshots/sites.jpg)
+
+**Site details** - domains, project folder, PHP version, group and HTTPS; tabs for the raw
+config (checked with `nginx -t`), logs and backups.
+
+![Site details](docs/screenshots/site-details.jpg)
+
+**Add a site** - domain, project folder, PHP version, framework, group, hosts file and HTTPS.
+
+![Add a site](docs/screenshots/add-site.jpg)
+
+**Groups** - sites per client, product or team.
+
+![Groups](docs/screenshots/groups.jpg)
+
+**SSL Certificates** - self-signed certificates, trusted by Windows, with renew / untrust.
+
+![SSL Certificates](docs/screenshots/ssl-certificates.jpg)
+
+**PHP Versions** - install any version, updates with rollback, start / stop, auto-start,
+and the PHP the manager itself runs on.
+
+![PHP Versions](docs/screenshots/php-versions.jpg)
+
+**PHP Extensions** - checkbox grid per PHP version, plus PECL installs.
+
+![PHP Extensions](docs/screenshots/php-extensions.jpg)
+
+**Settings** - project folders, extra PATH folders for PHP, certificates, system details.
+
+![Settings](docs/screenshots/settings.jpg)
 
 ## Quick start
 
