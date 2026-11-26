@@ -25,7 +25,8 @@
  *     files that exist, never touch an existing php/<version>/ folder; records the version
  *     in data/.nm-app-version
  *   - needsUpdate(dest, version): the folder was set up by the app and the app is newer
- *   - defaultFolder(platform, home): C:\NginxManager / ~/NginxManager
+ *   - defaultFolder / fallbackFolder / legacyFolders / chooseFolder: where it is set up -
+ *     C:\Program Files\Nginx Manager Server (Windows), ~/NginxManager (macOS); never asks
  * Used by: main.js (first run on a new machine, and after app updates)
  */
 
@@ -133,8 +134,61 @@ function findExisting(candidates, platform = process.platform) {
     return null;
 }
 
-function defaultFolder(platform, home) {
-    return platform === 'win32' ? 'C:\\NginxManager' : path.posix.join(home, 'NginxManager');
+/**
+ * First run: the app sets itself up without a question when the folder is free (missing or
+ * empty) or already holds Nginx Manager. A folder with other files is never written into
+ * silently - then the app asks.
+ */
+function canSetUpAutomatically(dir, platform = process.platform) {
+    if (!fs.existsSync(dir)) return true;
+    try {
+        if (fs.readdirSync(dir).length === 0) return true;
+    } catch (e) {
+        return false;
+    }
+    const { isManagerFolder } = require('./config');
+    return isManagerFolder(dir, platform);
 }
 
-module.exports = { isProtected, listFiles, apply, installedVersion, needsUpdate, rememberCommand, recallCommand, parseRegQuery, findExisting, defaultFolder };
+/**
+ * Windows: "C:\Program Files\Nginx Manager Server" - next to the app, NOT inside its folder
+ * (every app update replaces "C:\Program Files\Nginx Manager" completely). The installer
+ * creates it and lets the users of the PC write to it (nginx/PHP write logs, sites, certs).
+ */
+function defaultFolder(platform, home, env = process.env) {
+    if (platform !== 'win32') return path.posix.join(home, 'NginxManager');
+    return path.win32.join(env.ProgramFiles || 'C:\\Program Files', 'Nginx Manager Server');
+}
+
+/** Windows, only when Program Files cannot be written: the user's own app data folder. */
+function fallbackFolder(platform, home, env = process.env) {
+    if (platform !== 'win32') return path.posix.join(home, 'NginxManager');
+    return path.win32.join(env.LOCALAPPDATA || path.win32.join(home, 'AppData', 'Local'), 'Nginx Manager Server');
+}
+
+/** Folders older versions set up - found again on start, never set up anew. */
+function legacyFolders(platform) {
+    return platform === 'win32' ? ['C:\\NginxManager'] : [];
+}
+
+function isWritable(dir) {
+    try {
+        fs.mkdirSync(dir, { recursive: true });
+        const probe = path.join(dir, '.nm-write-test');
+        fs.writeFileSync(probe, '');
+        fs.unlinkSync(probe);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+/** The first folder the app may set itself up in without asking (free or its own, writable). */
+function chooseFolder(candidates, platform = process.platform) {
+    for (const dir of candidates) {
+        if (dir && canSetUpAutomatically(dir, platform) && isWritable(dir)) return dir;
+    }
+    return null;
+}
+
+module.exports = { isProtected, listFiles, apply, installedVersion, needsUpdate, rememberCommand, recallCommand, parseRegQuery, findExisting, canSetUpAutomatically, defaultFolder, fallbackFolder, legacyFolders, chooseFolder };

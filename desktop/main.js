@@ -97,18 +97,21 @@ async function main() {
         if (base) config.save(settingsFile, { base });
     }
     if (!base) {
-        // A reinstall: the folder set up before (recorded for the uninstaller), or the default one.
+        // A reinstall: the folder set up before (recorded for the uninstaller), the default and
+        // fallback folders, or where older versions set up (C:\NginxManager).
         const recall = setup.recallCommand(process.platform);
         const recorded = recall ? setup.parseRegQuery((await scripts.run(recall, { timeoutMs: 15000 })).output) : null;
-        base = setup.findExisting([recorded, setup.defaultFolder(process.platform, app.getPath('home'))]);
+        const home = app.getPath('home');
+        base = setup.findExisting([recorded, setup.defaultFolder(process.platform, home),
+            setup.fallbackFolder(process.platform, home), ...setup.legacyFolders(process.platform)]);
         if (base) config.save(settingsFile, { base });
     }
     if (!base && bundleDir) {
-        // A new machine: set Nginx Manager up from the files in the installer.
+        // A new machine: set Nginx Manager up from the installer's files - no question.
         base = await setupNew(bundleDir);
-        if (base === false) { app.quit(); return; }
     }
     if (!base) {
+        // Only without the installer's files (a developer run) or when no folder can be written.
         base = await pickFolder({ explain: true });
         if (!base) { app.quit(); return; }
     }
@@ -335,7 +338,7 @@ async function pickFolder({ explain = false } = {}) {
             message: 'Where is your Nginx Manager folder?',
             detail: 'Choose the folder you installed Nginx Manager in - the one that contains '
                 + (IS_MAC ? 'start-all.sh' : 'start-all.ps1') + ' and the "manager" folder '
-                + '(for example ' + (IS_MAC ? '/Users/you/NginxManager' : 'C:\\NginxManager') + ').\n\n'
+                + '(for example ' + (IS_MAC ? '/Users/you/NginxManager' : 'C:\\Program Files\\Nginx Manager Server') + ').\n\n'
                 + 'The app remembers it. You can change it later from the tray icon.',
             buttons: ['Choose folder...', 'Quit'],
             defaultId: 0,
@@ -474,40 +477,27 @@ function findBundle() {
 }
 
 /**
- * Offers to set Nginx Manager up from the installer's files.
- * @returns {Promise<string|null|false>} the folder; null = the user will pick an existing one; false = quit
+ * Sets Nginx Manager up from the installer's files - WITHOUT asking: in
+ * C:\Program Files\Nginx Manager Server (made writable by the installer), or, if that cannot
+ * be written, in the user's own app data folder. A folder holding other files is never used.
+ * @returns {Promise<string|null>} the folder; null only when no folder could be written
  */
 async function setupNew(bundleDir) {
-    const target = setup.defaultFolder(process.platform, app.getPath('home'));
-    const answer = await dialog.showMessageBox({
-        type: 'question',
-        title: 'Nginx Manager',
-        message: 'Set up Nginx Manager on this computer?',
-        detail: 'Nginx Manager (the manager' + (IS_MAC ? '' : ', nginx and PHP 8.4') + ') will be set up in:\n'
-            + target + '\n\nYour sites, certificates and settings will be kept in that folder.'
-            + (IS_MAC ? '\n\nOn macOS nginx and PHP come from Homebrew - start-all.sh tells you what to install.' : ''),
-        buttons: ['Set up here', 'Choose another folder...', 'I already have Nginx Manager...', 'Quit'],
-        defaultId: 0,
-        cancelId: 3,
-    });
-    if (answer.response === 3) return false;
-    if (answer.response === 2) return null;   // pickFolder() next
-    let dest = target;
-    if (answer.response === 1) {
-        const r = await dialog.showOpenDialog({ title: 'Where should Nginx Manager be set up?',
-            defaultPath: app.getPath('home'), properties: ['openDirectory', 'createDirectory'] });
-        if (r.canceled || !r.filePaths.length) return false;
-        dest = r.filePaths[0];
-        // A folder that already holds other things gets its own "NginxManager" folder inside.
-        if (!config.isManagerFolder(dest) && fs.readdirSync(dest).length > 0) dest = path.join(dest, 'NginxManager');
+    const home = app.getPath('home');
+    const candidates = [setup.defaultFolder(process.platform, home), setup.fallbackFolder(process.platform, home)];
+    for (const dest of candidates) {
+        if (setup.chooseFolder([dest]) !== dest) continue;
+        try {
+            setup.apply(bundleDir, dest, app.getVersion());
+            return await finishSetup(dest);
+        } catch (e) {
+            errors.log(path.join(app.getPath('userData'), 'logs', 'main.log'), new Error('setup in ' + dest + ' failed: ' + (e.message || e)));
+        }
     }
-    try {
-        setup.apply(bundleDir, dest, app.getVersion());
-    } catch (e) {
-        await dialog.showMessageBox({ type: 'error', message: 'Nginx Manager could not be set up in ' + dest,
-            detail: String(e.message || e) + '\n\nChoose another folder (one you can write to).' });
-        return setupNew(bundleDir);
-    }
+    return null;
+}
+
+async function finishSetup(dest) {
     config.save(settingsFile, { base: dest });
     // Tell the uninstaller which folder the app created (only that one may be offered for deletion).
     const remember = setup.rememberCommand(process.platform, dest);

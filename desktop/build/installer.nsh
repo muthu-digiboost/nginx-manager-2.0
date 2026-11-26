@@ -12,7 +12,7 @@
 ;*
 ;******************************************************************************
 ;
-; Uninstaller additions for the Windows installer (electron-builder nsis.include).
+; Installer and uninstaller additions for Windows (electron-builder nsis.include).
 ;
 ; ONE page instead of the default welcome/confirm page (Windows already asks once):
 ;   - says what is removed: the app, its settings and cache, Start at login
@@ -110,4 +110,15 @@ FunctionEnd
 
     DeleteRegKey HKCU "Software\Nginx Manager"
   ${EndIf}
+!macroend
+
+; Install (and every update): the server folder "C:\Program Files\Nginx Manager Server" -
+; NEXT TO the app folder, because every update replaces "C:\Program Files\Nginx Manager"
+; completely. The app sets Nginx Manager up in it on first start (no question). nginx and
+; PHP write logs, sites, certificates and settings there, so the PC's users get "Modify"
+; on this one folder (Users = S-1-5-32-545; the same access C:\NginxManager had).
+!macro customInstall
+  CreateDirectory "$PROGRAMFILES64\Nginx Manager Server"
+  nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$PROGRAMFILES64\Nginx Manager Server" /grant *S-1-5-32-545:(OI)(CI)M /T /C /Q'
+  Pop $0
 !macroend

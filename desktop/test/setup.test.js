@@ -110,9 +110,24 @@ test('needsUpdate: only when the app is newer than what set the folder up', () =
     assert.strictEqual(setup.needsUpdate(dest, '1.9.0'), false);    // never downgrade
 });
 
-test('default folder: C:\\NginxManager on Windows, ~/NginxManager on macOS', () => {
-    assert.strictEqual(setup.defaultFolder('win32', 'C:\\Users\\me'), 'C:\\NginxManager');
-    assert.strictEqual(setup.defaultFolder('darwin', '/Users/me'), '/Users/me/NginxManager');
+test('default folder: next to the app in Program Files on Windows, ~/NginxManager on macOS', () => {
+    const env = { ProgramFiles: 'C:\\Program Files', LOCALAPPDATA: 'C:\\Users\\me\\AppData\\Local' };
+    assert.strictEqual(setup.defaultFolder('win32', 'C:\\Users\\me', env), 'C:\\Program Files\\Nginx Manager Server');
+    assert.strictEqual(setup.defaultFolder('darwin', '/Users/me', env), '/Users/me/NginxManager');
+    // only when Program Files cannot be written (installer step missing): the user's own folder
+    assert.strictEqual(setup.fallbackFolder('win32', 'C:\\Users\\me', env), 'C:\\Users\\me\\AppData\\Local\\Nginx Manager Server');
+    // older versions set up in C:\NginxManager - still found again, never a new question
+    assert.deepStrictEqual(setup.legacyFolders('win32'), ['C:\\NginxManager']);
+    assert.deepStrictEqual(setup.legacyFolders('darwin'), []);
+});
+
+test('first-run folder is chosen without asking: default, else fallback; never one with other files', () => {
+    const free = path.join(tmp(), 'Nginx Manager Server');
+    const other = tmp();
+    write(other, 'someones-file.txt', 'x');
+    const fallback = path.join(tmp(), 'Nginx Manager Server');
+    assert.strictEqual(setup.chooseFolder([free, fallback]), free);
+    assert.strictEqual(setup.chooseFolder([other, fallback]), fallback);
 });
 
 test('Windows: the folder the app set up is recorded for the uninstaller (HKCU, no admin needed)', () => {
@@ -129,6 +144,20 @@ test('an existing setup is found again (recorded folder, then the default folder
     const empty = tmp();
     assert.strictEqual(setup.findExisting([empty, existing], process.platform), existing);
     assert.strictEqual(setup.findExisting(['', null, empty], process.platform), null);
+});
+
+test('first run sets up automatically when the default folder is free; asks only when it holds other files', () => {
+    const parent = tmp();
+    assert.strictEqual(setup.canSetUpAutomatically(path.join(parent, 'NginxManager')), true);   // does not exist
+    const empty = path.join(parent, 'empty');
+    fs.mkdirSync(empty);
+    assert.strictEqual(setup.canSetUpAutomatically(empty), true);                                // exists, empty
+    const install = tmp();
+    for (const rel of ['manager/bin/manager.php', 'start-all.ps1', 'start-all.sh']) write(install, rel, '');
+    assert.strictEqual(setup.canSetUpAutomatically(install, process.platform), true);           // an install already
+    const other = tmp();
+    write(other, 'someones-file.txt', 'x');
+    assert.strictEqual(setup.canSetUpAutomatically(other, process.platform), false);            // other files: ask
 });
 
 test('the recorded folder is read back from "reg query" output', () => {

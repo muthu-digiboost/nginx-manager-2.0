@@ -171,14 +171,29 @@ are never touched. New versions come from this repository's GitHub releases: eve
 `main` publishes one (`v2.0.<build number>`).
 
 **New PC:** the installer brings everything (the manager, nginx 1.26.3 and PHP 8.4 on Windows).
-On first start the app offers to set Nginx Manager up in `C:\NginxManager` (macOS:
-`~/NginxManager`; another folder can be chosen) and starts it. PHP needs the Microsoft Visual
-C++ 2015-2022 Redistributable (x64); the app checks this and links to Microsoft's download if
-it is missing. A machine that already runs the manager is detected and nothing is copied.
+Nothing is asked: on first start the app sets Nginx Manager up by itself and starts it.
 
-**Install:** run `Nginx Manager Setup <version>.exe` (Windows) or open the `.dmg` (macOS).
-The builds are not code-signed: Windows shows "Windows protected your PC" (More info → Run
-anyway), macOS asks you to right-click → Open the first time.
+| | App | Server folder (nginx, PHP, your sites, certificates, settings) |
+|---|---|---|
+| Windows | `C:\Program Files\Nginx Manager` | `C:\Program Files\Nginx Manager Server` |
+| macOS | `/Applications/Nginx Manager.app` | `~/NginxManager` |
+
+The server folder sits next to the app folder, not inside it, because every update replaces
+the app folder completely. The installer creates it and gives the PC's users write access to it
+(nginx and PHP write logs, sites and certificates there). If it cannot be written, the app
+uses `%LOCALAPPDATA%\Nginx Manager Server` instead, again without asking. A setup made by an
+older version (`C:\NginxManager`) or a machine that already runs the manager is found and used;
+nothing is copied. The folder can be changed later from the tray icon. PHP needs the Microsoft
+Visual C++ 2015-2022 Redistributable (x64); the app checks this and links to Microsoft's
+download if it is missing.
+
+**Install:** run `Nginx Manager Setup <version>.exe` (Windows; it asks for Administrator once,
+to install into Program Files) or open the `.dmg` (macOS). The builds are not code-signed:
+Windows shows "Windows protected your PC" (More info → Run anyway), macOS asks you to
+right-click → Open the first time.
+
+**Uninstall** (Windows, Settings → Apps): removes the app, its settings and Start at login.
+An unticked checkbox also deletes the server folder (nginx and PHP are stopped first).
 
 **Build it yourself** (Node.js 22.12 or newer):
 ```bash
