@@ -122,3 +122,20 @@ test('Windows: the folder the app set up is recorded for the uninstaller (HKCU, 
     });
     assert.strictEqual(setup.rememberCommand('darwin', '/Users/me/NginxManager'), null);   // no uninstaller on macOS
 });
+
+test('an existing setup is found again (recorded folder, then the default folder) - no setup question', () => {
+    const existing = tmp();
+    for (const rel of ['manager/bin/manager.php', 'start-all.ps1', 'start-all.sh']) write(existing, rel, '');
+    const empty = tmp();
+    assert.strictEqual(setup.findExisting([empty, existing], process.platform), existing);
+    assert.strictEqual(setup.findExisting(['', null, empty], process.platform), null);
+});
+
+test('the recorded folder is read back from "reg query" output', () => {
+    const out = '\r\nHKEY_CURRENT_USER\\Software\\Nginx Manager\r\n    SetupFolder    REG_SZ    C:\\Nginx Manager Data\r\n\r\n';
+    assert.strictEqual(setup.parseRegQuery(out), 'C:\\Nginx Manager Data');
+    assert.strictEqual(setup.parseRegQuery('ERROR: The system was unable to find the specified registry key or value.'), null);
+    assert.deepStrictEqual(setup.recallCommand('win32'),
+        { file: 'reg.exe', args: ['query', 'HKCU\\Software\\Nginx Manager', '/v', 'SetupFolder'] });
+    assert.strictEqual(setup.recallCommand('darwin'), null);
+});

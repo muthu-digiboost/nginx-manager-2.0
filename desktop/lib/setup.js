@@ -109,8 +109,32 @@ function rememberCommand(platform, dest) {
     return { file: 'reg.exe', args: ['add', 'HKCU\\Software\\Nginx Manager', '/v', 'SetupFolder', '/t', 'REG_SZ', '/d', dest, '/f'] };
 }
 
+/** Windows: reads the recorded folder back ("reg query"); null elsewhere. */
+function recallCommand(platform) {
+    if (platform !== 'win32') return null;
+    return { file: 'reg.exe', args: ['query', 'HKCU\\Software\\Nginx Manager', '/v', 'SetupFolder'] };
+}
+
+/** "    SetupFolder    REG_SZ    C:\NginxManager" -> "C:\NginxManager" (null when missing). */
+function parseRegQuery(output) {
+    const m = String(output || '').match(/^\s*SetupFolder\s+REG_SZ\s+(.+?)\s*$/m);
+    return m ? m[1] : null;
+}
+
+/**
+ * The first candidate that is an Nginx Manager folder (the recorded one, then the default
+ * one) - so a reinstall uses the existing setup instead of asking to set up again.
+ */
+function findExisting(candidates, platform = process.platform) {
+    const { isManagerFolder } = require('./config');
+    for (const dir of candidates) {
+        if (dir && isManagerFolder(dir, platform)) return dir;
+    }
+    return null;
+}
+
 function defaultFolder(platform, home) {
     return platform === 'win32' ? 'C:\\NginxManager' : path.posix.join(home, 'NginxManager');
 }
 
-module.exports = { isProtected, listFiles, apply, installedVersion, needsUpdate, rememberCommand, defaultFolder };
+module.exports = { isProtected, listFiles, apply, installedVersion, needsUpdate, rememberCommand, recallCommand, parseRegQuery, findExisting, defaultFolder };

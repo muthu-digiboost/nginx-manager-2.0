@@ -23,8 +23,8 @@
 ; On a real uninstall (not during an update):
 ;   - always: app data (deleteAppDataOnUninstall), the updater cache, the Start at login
 ;     entry, the registry key
-;   - folder ticked: stop nginx + PHP (stop-all.ps1, one Administrator prompt, waits),
-;     then delete the folder
+;   - folder ticked: scripts\remove-install.ps1 in that folder (one Administrator prompt)
+;     stops nginx + PHP, waits until nothing runs from the folder, deletes it with retries
 ;   - a silent uninstall (/S) never deletes the folder
 
 !include nsDialogs.nsh
@@ -90,12 +90,21 @@ FunctionEnd
     ${If} $nmDeleteFolder == "1"
     ${AndIf} $nmFolder != ""
     ${AndIf} ${FileExists} "$nmFolder\data\.nm-app-version"
-      DetailPrint "Stopping nginx and PHP in $nmFolder ..."
-      ExecWait '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$nmFolder\stop-all.ps1" -NoPause -WaitElevated'
-      DetailPrint "Deleting $nmFolder ..."
-      RMDir /r "$nmFolder"
+      DetailPrint "Stopping nginx and PHP and deleting $nmFolder ..."
+      ${If} ${FileExists} "$nmFolder\scripts\remove-install.ps1"
+        ; One elevated script stops the servers, waits until nothing runs from the folder,
+        ; deletes it with retries and checks the result (exit code 0 = gone).
+        ExecWait '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$nmFolder\scripts\remove-install.ps1"' $0
+      ${Else}
+        ; A folder from an older version without remove-install.ps1.
+        ExecWait '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$nmFolder\stop-all.ps1" -NoPause -WaitElevated'
+        Sleep 2000
+        RMDir /r "$nmFolder"
+      ${EndIf}
       ${If} ${FileExists} "$nmFolder\*.*"
-        MessageBox MB_OK|MB_ICONINFORMATION "Some files in $nmFolder could not be deleted (still in use). Delete the folder by hand after restarting Windows."
+        MessageBox MB_OK|MB_ICONINFORMATION "$nmFolder could not be deleted completely (Administrator permission not given, or files still in use). You can delete the folder by hand."
+      ${Else}
+        DetailPrint "$nmFolder deleted"
       ${EndIf}
     ${EndIf}
 

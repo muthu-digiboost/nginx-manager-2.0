@@ -96,6 +96,13 @@ async function main() {
         base = config.fromHealth(await health.check(health.managerUrl('')));
         if (base) config.save(settingsFile, { base });
     }
+    if (!base) {
+        // A reinstall: the folder set up before (recorded for the uninstaller), or the default one.
+        const recall = setup.recallCommand(process.platform);
+        const recorded = recall ? setup.parseRegQuery((await scripts.run(recall, { timeoutMs: 15000 })).output) : null;
+        base = setup.findExisting([recorded, setup.defaultFolder(process.platform, app.getPath('home'))]);
+        if (base) config.save(settingsFile, { base });
+    }
     if (!base && bundleDir) {
         // A new machine: set Nginx Manager up from the files in the installer.
         base = await setupNew(bundleDir);
