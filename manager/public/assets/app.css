@@ -690,3 +690,8 @@ a.chip:hover { border-color: var(--primary); color: var(--primary); text-decorat
 .ver-old { text-align: right; color: var(--muted); }
 .ver-arrow { text-align: center; color: var(--muted); }
 .ver-new { color: var(--text-strong); }
+
+/* 37. Groups: cards in a row share one height; the site list takes the free space, so the
+       buttons (Manage sites / Edit / Delete) always sit at the bottom ------------------------ */
+.group-cards { align-items: stretch; }
+.group-card .gsites { flex: 1 1 auto; }
