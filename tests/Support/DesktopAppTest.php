@@ -60,3 +60,25 @@ test('the Settings page offers Check for updates only inside the desktop app', f
     assertTrue(!str_contains($browser, 'nginx-manager://'));
     assertTrue(!str_contains($browser, 'desktop-app'));
 });
+
+test('the installed version comes from data/.nm-app-version (written by the installer)', function () {
+    $base = tempDir();
+    \NginxManager\Support\Paths::overrideBase($base);
+    assertSame(null, DesktopApp::installedVersion());                       // a repo checkout: no file
+    @mkdir($base . '/data', 0777, true);
+    file_put_contents($base . '/data/.nm-app-version', "2.0.12\n");
+    assertSame('2.0.12', DesktopApp::installedVersion());
+    file_put_contents($base . '/data/.nm-app-version', "<b>x</b>\n");      // only a plain version
+    assertSame(null, DesktopApp::installedVersion());
+});
+
+test('the sidebar badge shows the installed version, "2.0" without one', function () {
+    $base = tempDir();
+    \NginxManager\Support\Paths::overrideBase($base);
+    $html = \NginxManager\Support\View::render('partials/sidebar', ['updateCount' => 0], null);
+    assertTrue(str_contains($html, '<span class="brand-version">2.0</span>'));
+    @mkdir($base . '/data', 0777, true);
+    file_put_contents($base . '/data/.nm-app-version', "2.0.12\n");
+    $html = \NginxManager\Support\View::render('partials/sidebar', ['updateCount' => 0], null);
+    assertTrue(str_contains($html, '<span class="brand-version">2.0.12</span>'));
+});

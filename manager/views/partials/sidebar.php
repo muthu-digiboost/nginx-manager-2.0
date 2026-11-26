@@ -32,12 +32,14 @@ $sections = [
     ],
 ];
 $updates = isset($updateCount) && is_callable($updateCount) ? (int) $updateCount() : (int) ($updateCount ?? 0);
+// the version the desktop app installed (data/.nm-app-version); "2.0" in a repo checkout
+$version = \NginxManager\Support\DesktopApp::installedVersion() ?? '2.0';
 ?>
 <aside class="sidebar">
-    <a class="sidebar-brand" href="/" title="Nginx Manager 2.0 - Dashboard">
+    <a class="sidebar-brand" href="/" title="Nginx Manager <?= e($version) ?> - Dashboard">
         <img src="/assets/logo.svg" alt="">
         <span class="brand-words"><b>NGINX</b><small>MANAGER</small></span>
-        <span class="brand-version">2.0</span>
+        <span class="brand-version"><?= e($version) ?></span>
     </a>
     <nav class="nav" aria-label="Main menu">
         <?php foreach ($sections as $label => $items): ?>
