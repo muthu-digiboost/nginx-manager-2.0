@@ -14,8 +14,8 @@
 #
 # Every push to main (a direct commit or a merge): run all tests, then build and PUBLISH a new
 # release of the desktop app - the app's Update button installs it:
-#   1. tests  2. draft release v2.0.<run number>  3. Windows installer + macOS dmg uploaded to
-#   it (with latest.yml for the Windows updater)  4. the release is published.
+#   1. tests  2. draft release v2.0.<run number>  3. Windows installer (+ latest.yml for the
+#   updater) uploaded and the release PUBLISHED at once  4. the macOS dmg is added when ready.
 # The installer bundle (desktop/scripts/bundle.js) contains only git-tracked files plus nginx
 # and PHP from nginx.org / php.net (checksums verified) - never machine data.
 # Builds are not code-signed (no certificates in the repo). Also as artifacts for 30 days.
@@ -89,22 +89,10 @@ jobs:
             --draft --target "${{ github.sha }}" --title "Nginx Manager ${{ steps.v.outputs.version }}" \
             --notes "Built from ${{ github.sha }}. Windows: Nginx Manager Setup ${{ steps.v.outputs.version }}.exe - macOS: the .dmg. Installed apps update from Settings > Check for updates; sites, certificates and settings are kept."
 
-  build:
-    name: Build (${{ matrix.name }})
+  build-windows:
+    name: Build (Windows) + publish
     needs: release
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            name: Windows
-            target: --win
-            files: desktop/dist/*.exe
-          - os: macos-latest
-            name: macOS
-            target: --mac
-            files: desktop/dist/*.dmg
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -116,8 +104,8 @@ jobs:
 
       - name: Build and upload to the draft release
         working-directory: desktop
-        # bash on every OS with "stop on the first error": on Windows the default PowerShell
-        # carried on after a failed bundle step and published an installer without nginx/PHP.
+        # bash with "stop on the first error": the default PowerShell once carried on after a
+        # failed bundle step and published an installer without nginx/PHP.
         shell: bash
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'   # no signing certificate: build unsigned
@@ -127,21 +115,63 @@ jobs:
           npm ci
           npm version "${{ needs.release.outputs.version }}" --no-git-tag-version
           node scripts/bundle.js
-          npx electron-builder ${{ matrix.target }} --publish always
+          npx electron-builder --win --publish always
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Nginx Manager - ${{ matrix.name }}
-          path: ${{ matrix.files }}
-          if-no-files-found: error
-          retention-days: 30
-
-  publish:
-    name: Publish release
-    needs: [release, build]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Publish (apps see the update from now on)
+      - name: Publish the release (installed apps see the update from now on)
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release edit "v${{ needs.release.outputs.version }}" --repo "${{ github.repository }}" --draft=false --latest
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nginx Manager - Windows
+          path: desktop/dist/*.exe
+          if-no-files-found: error
+          retention-days: 30
+
+  build-macos:
+    # Runs next to the Windows build; GitHub's macOS machines can be queued for a while, so
+    # the release does NOT wait for it - the dmg is added to the release when it is ready.
+    name: Build (macOS) + add to release
+    needs: release
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Build
+        working-directory: desktop
+        shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'   # no Apple certificate: build unsigned
+        run: |
+          set -euo pipefail
+          npm ci
+          npm version "${{ needs.release.outputs.version }}" --no-git-tag-version
+          node scripts/bundle.js
+          npx electron-builder --mac --publish never
+
+      - name: Add the dmg to the release (also works after it was published)
+        working-directory: desktop
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(dist/*.dmg dist/*.dmg.blockmap dist/latest-mac.yml)
+          [ ${#files[@]} -gt 0 ] || { echo "no macOS build found"; exit 1; }
+          gh release upload "v${{ needs.release.outputs.version }}" "${files[@]}" --repo "${{ github.repository }}" --clobber
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nginx Manager - macOS
+          path: desktop/dist/*.dmg
+          if-no-files-found: error
+          retention-days: 30
