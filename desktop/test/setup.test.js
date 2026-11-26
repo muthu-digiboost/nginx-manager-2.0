@@ -101,6 +101,24 @@ test('an update refreshes code but keeps data, sites, certificates and existing 
     assert.strictEqual(setup.installedVersion(dest), '2.0.2');
 });
 
+test('an update while nginx runs: unchanged files are left alone, a locked file never stops the update', () => {
+    const b = bundle();
+    const dest = tmp();
+    setup.apply(b, dest, '2.0.1');
+    const exe = path.join(dest, 'nginx.exe');
+    fs.chmodSync(exe, 0o444);                      // stands in for a running (locked) nginx.exe
+    write(b, 'start-all.ps1', 'newer start');
+    const r = setup.apply(b, dest, '2.0.2');       // must not throw
+    assert.strictEqual(read(dest, 'start-all.ps1'), 'newer start');
+    assert.strictEqual(setup.installedVersion(dest), '2.0.2');
+    assert.ok(r.skipped >= 1);
+    write(b, 'nginx.exe', 'NGINX 2');               // changed AND locked: skipped, reported
+    fs.chmodSync(exe, 0o444);
+    const r2 = setup.apply(b, dest, '2.0.3');
+    assert.deepStrictEqual(r2.failed, ['nginx.exe']);
+    fs.chmodSync(exe, 0o666);
+});
+
 test('needsUpdate: only when the app is newer than what set the folder up', () => {
     const dest = tmp();
     assert.strictEqual(setup.needsUpdate(dest, '2.0.0'), false);    // not set up by the app: never touched

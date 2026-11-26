@@ -56,10 +56,25 @@ function listFiles(dir, prefix = '') {
     return out;
 }
 
-/** @returns {{copied: number, skipped: number}} */
+function sameContent(a, b) {
+    try {
+        const sa = fs.statSync(a);
+        const sb = fs.statSync(b);
+        return sa.size === sb.size && fs.readFileSync(a).equals(fs.readFileSync(b));
+    } catch (e) {
+        return false;
+    }
+}
+
+/**
+ * Unchanged files are left alone (a running nginx.exe is locked); a file that cannot be
+ * replaced is listed in `failed` and never stops the rest.
+ * @returns {{copied: number, skipped: number, failed: string[]}}
+ */
 function apply(bundleDir, dest, version) {
     let copied = 0;
     let skipped = 0;
+    const failed = [];
     const phpFolderExisted = {};   // php/<version> already there before this run -> left alone
     for (const rel of listFiles(bundleDir)) {
         const target = path.join(dest, ...rel.split('/'));
@@ -69,13 +84,20 @@ function apply(bundleDir, dest, version) {
             if (phpFolderExisted[php[1]]) { skipped++; continue; }
         }
         if (isProtected(rel) && fs.existsSync(target)) { skipped++; continue; }
+        const source = path.join(bundleDir, ...rel.split('/'));
+        if (sameContent(source, target)) { skipped++; continue; }
         fs.mkdirSync(path.dirname(target), { recursive: true });
-        fs.copyFileSync(path.join(bundleDir, ...rel.split('/')), target);
-        copied++;
+        try {
+            fs.copyFileSync(source, target);
+            copied++;
+        } catch (e) {
+            if (!fs.existsSync(target)) throw e;   // a missing file must be there: real error
+            failed.push(rel);                      // in use - the next update tries again
+        }
     }
     fs.mkdirSync(path.join(dest, MARKER[0]), { recursive: true });
     fs.writeFileSync(path.join(dest, ...MARKER), version + '\n');
-    return { copied, skipped };
+    return { copied, skipped, failed };
 }
 
 function installedVersion(dest) {

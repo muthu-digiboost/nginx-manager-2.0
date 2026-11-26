@@ -110,8 +110,17 @@ async function main() {
         // A new machine: set Nginx Manager up from the installer's files - no question.
         base = await setupNew(bundleDir);
     }
+    if (!base && app.isPackaged) {
+        // The installed app never asks. Getting here means no folder could be written - e.g.
+        // an antivirus running the app in its sandbox during the install (it sees neither
+        // Program Files nor the user's folders). Quietly stop; the real start sets up.
+        errors.log(path.join(app.getPath('userData'), 'logs', 'main.log'),
+            new Error('no writable folder for the setup - quit without asking'));
+        app.quit();
+        return;
+    }
     if (!base) {
-        // Only without the installer's files (a developer run) or when no folder can be written.
+        // A developer run from the repo without the bundle.
         base = await pickFolder({ explain: true });
         if (!base) { app.quit(); return; }
     }
@@ -123,8 +132,17 @@ async function main() {
     }
     if (bundleDir && setup.needsUpdate(base, app.getVersion())) {
         // The app was updated: refresh the manager's code in the folder it set up (data untouched).
-        setup.apply(bundleDir, base, app.getVersion());
-        notify('Nginx Manager updated', 'The manager in ' + base + ' was updated to ' + app.getVersion() + '.');
+        try {
+            const r = setup.apply(bundleDir, base, app.getVersion());
+            if (r.failed.length) {
+                errors.log(path.join(app.getPath('userData'), 'logs', 'main.log'),
+                    new Error('update: in use, not replaced: ' + r.failed.join(', ')));
+            }
+            notify('Nginx Manager updated', 'The manager in ' + base + ' was updated to ' + app.getVersion() + '.');
+        } catch (e) {
+            // never keep the app from starting - the servers still run the previous code
+            errors.log(path.join(app.getPath('userData'), 'logs', 'main.log'), e);
+        }
     }
     managerUrl = health.managerUrl(base);
 

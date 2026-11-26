@@ -122,3 +122,16 @@ FunctionEnd
   nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$PROGRAMFILES64\Nginx Manager Server" /grant *S-1-5-32-545:(OI)(CI)M /T /C /Q'
   Pop $0
 !macroend
+
+; Install, update and uninstall: close the app if it runs - WITHOUT the "Nginx Manager cannot
+; be closed" message. Replaces electron-builder's check, which matched every path STARTING
+; with the app folder - "C:\Program Files\Nginx Manager Server\nginx.exe" too, so nginx and
+; PHP (which it can never close) made it ask "close it manually" on every update. Only
+; processes INSIDE "C:\Program Files\Nginx Manager\" are closed (forced, up to 15 s); the
+; servers keep running.
+!macro customCheckAppRunning
+  DetailPrint "Closing Nginx Manager if it is running ..."
+  nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -Command "$$d = '$INSTDIR\'; for ($$i = 0; $$i -lt 15; $$i++) { $$p = @(Get-CimInstance Win32_Process | Where-Object { $$_.ExecutablePath -and $$_.ExecutablePath.StartsWith($$d, [StringComparison]::OrdinalIgnoreCase) }); if ($$p.Count -eq 0) { exit 0 }; $$p | ForEach-Object { Stop-Process -Id $$_.ProcessId -Force -ErrorAction SilentlyContinue }; Start-Sleep -Seconds 1 }; exit 1"`
+  Pop $0
+  Sleep 500
+!macroend
