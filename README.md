@@ -158,17 +158,23 @@ app (Windows and macOS, built with Electron in `desktop/`):
   folder · Quit (servers keep running) · Quit and stop servers.
 - Only the manager opens inside the window; your sites and other links open in the default
   browser.
-- The first time, the installed app asks for the Nginx Manager folder (the one with
-  `start-all` and `manager/`) and remembers it.
+- No questions: the installed app finds its server folder by itself (see **New PC** below);
+  another folder can be chosen later from the tray icon (Change Nginx Manager folder).
+- No PowerShell windows: the app runs the scripts hidden (`-Hidden`); Windows only shows
+  its Administrator prompt.
 
 **Updates:** tray icon → **Settings...** (or **Check for updates...**) → **Check for updates** →
 **Update now**. Windows downloads the new version (checked against its SHA-512), installs it and
 restarts the app; macOS opens the download page of the new version (automatic installing
 needs an Apple-signed app). The app also checks by itself a little after starting and every
 6 hours, and tells you when a new version is out. Updates replace the app and refresh the
-manager's code in its folder - `.env`, sites, certificates, PHP versions, logs and backups
-are never touched. New versions come from this repository's GitHub releases: every push to
-`main` publishes one (`v2.0.<build number>`).
+manager's code in the server folder - `.env`, sites, certificates, settings, logs and backups
+are never touched, and PHP versions are yours after the first setup (an update neither
+changes a php.ini nor brings back a version you removed). Unchanged files are skipped, so
+an update works while nginx and PHP keep running. New versions come from this repository's
+GitHub releases: every push to `main` publishes one (`v2.0.<build number>`). Only a
+**higher** number counts as an update - after installing a locally built `2.0.<n>`, the
+Update button stays quiet until GitHub's number is higher.
 
 **New PC:** the installer brings everything (the manager, nginx 1.26.3 and PHP 8.5.12 on Windows; add
 more PHP versions in the app under PHP Versions → Add). The servers start in the background,
@@ -229,11 +235,18 @@ merge from another branch:
   Options: `git config nm.buildBranch <branch>` (build another branch instead of `main`),
   `git config nm.autoBuild false` (off).
 - **On GitHub (GitHub Actions):** every push to `main` - including a merged pull request -
-  runs all tests (PHP, PowerShell, desktop), then builds the Windows installer and the
-  macOS `.dmg` and **publishes them as a GitHub release** `v2.0.<build number>`
-  (`.github/workflows/desktop.yml`) - installed apps see it under Check for updates. The
-  files are also on the run's page under **Artifacts** (kept 30 days). Pushing the workflow
-  file needs a GitHub login with the `workflow` permission.
+  runs `.github/workflows/desktop.yml`:
+  1. **Tests** on Windows: PHP (8.5), PowerShell (Pester) and the desktop app.
+  2. **Draft release** `v2.0.<build number>`.
+  3. **Windows:** builds the installer and **publishes the release at once** - installed
+     apps see it under Check for updates within minutes.
+  4. **macOS**, at the same time: runs the desktop tests on a Mac, builds the `.dmg` and
+     **adds it to the same release** when it is done (GitHub's Mac machines are sometimes
+     queued - the release never waits for them).
+
+  The files are also on the run's page under **Artifacts** (kept 30 days). A run that fails
+  publishes nothing; the next push simply gets the next number. Pushing the workflow file
+  needs a GitHub login with the `workflow` permission.
 
 ## Using the manager
 
@@ -315,7 +328,8 @@ nginx-manager-2.0/
 ├── .env.example            template for machine settings (.env is created from it)
 ├── .github/workflows/      desktop.yml: tests + desktop app builds on every push to main
 ├── .githooks/              post-commit / post-merge: rebuild the desktop app on main locally
-├── desktop/                the desktop app (Electron): main.js, lib/, assets/, tests
+├── desktop/                the desktop app (Electron): main.js, lib/, assets/, tests,
+│                           build/installer.nsh (Windows installer), scripts/bundle.js
 ├── conf/
 │   ├── nginx.conf          main config (committed)
 │   ├── generated/          upstreams + project folder variables   (generated)
@@ -343,6 +357,9 @@ backups are ignored, so the same repository works on any machine.
 ## Scripts
 
 **Windows:** PowerShell scripts; they ask for Administrator when they need it and accept `-NoPause`.
+`start-all`, `stop-all`, `restart-all` and `reload-nginx` also accept `-Hidden`: the
+Administrator copy then runs without a window (the desktop app uses it; by hand the window
+shows the progress).
 
 | Script | Purpose |
 |---|---|
@@ -355,6 +372,7 @@ backups are ignored, so the same repository works on any machine.
 | `scripts\install-extension.ps1` | Install a PECL extension (normally started from the UI). |
 | `scripts\switch-manager-php.ps1 -Id 8.4` | Run the manager on another PHP version (normally started from the UI). |
 | `scripts\install-autostart.ps1 [-Remove]` | Start the servers at logon, elevated, without a prompt. |
+| `scripts\remove-install.ps1 -Base <folder>` | Used by the desktop app's uninstaller: stops what runs from a server folder the app set up and deletes it (never another folder). |
 
 **macOS:** bash scripts with the same names; they run as your user (no `sudo`).
 
@@ -381,6 +399,15 @@ On macOS, installs, updates, restarts and the manager PHP switch run as
 - Downloads: PHP builds of supported branches are verified with php.net's SHA-256.
   Archived PHP builds and PECL extensions have no published checksum and are downloaded
   over HTTPS only (the UI says so).
+- Desktop app (Windows):
+  - The installer contains only files tracked by git plus nginx and PHP with **pinned
+    SHA-256** checksums - never your `.env`, sites, certificates, logs or project folders
+    (the build fails if any slips in).
+  - The server folder in Program Files keeps the normal protection: only Administrators can
+    change it, so no program running as a normal user can change the scripts that run
+    elevated. The installer sets it up and updates it.
+  - The uninstaller runs its delete script from the app's own folder, deletes only a folder
+    the app set up (marker `data\.nm-app-version`) and never follows links out of it.
 
 ## Backups and recovery
 
@@ -417,6 +444,9 @@ versions must be set again for the new machine. To take your sites along, also c
 | A job says "did not start" | PowerShell could not run the script. Run the same script from a PowerShell console (see [Scripts](#scripts)) to see the error. |
 | "php\x is in use by another program" (PHP update) | Close the IDE, terminal or tool using that `php.exe` and update again. PHP was started again. |
 | A project folder is refused on Settings | Folder names containing `$ " ' ; # { }` would break nginx - rename the folder. |
+| Installer: "Nginx Manager cannot be closed", or "Windows cannot access the specified device" | An antivirus (e.g. Avast CyberCapture) is checking the new, unsigned program. Wait until it is done, then Retry - or add `C:\Program Files\Nginx Manager\` and `C:\Program Files\Nginx Manager Server\` as exceptions. |
+| Update button shows no new version | Only a higher version number counts. After installing a locally built version, wait for the next GitHub release, or install it from the Releases page. |
+| Desktop app: servers do not start | Click **Yes** on Windows' Administrator prompt (tray → Start all asks again). Details: `%APPDATA%\Nginx Manager\logs\main.log`. |
 | macOS: `start-all.sh` says Homebrew, nginx or PHP is missing | Run the `brew` commands it prints, then start again. |
 | macOS: `Permission denied` when starting a script | `chmod +x *.sh scripts/*.sh` (the folder was copied without file permissions). |
 | macOS: nginx does not start on port 80/443 | Another web server uses the port (e.g. `brew services` nginx or Apache): `brew services stop nginx`, `sudo apachectl stop`. |
@@ -424,8 +454,9 @@ versions must be set again for the new machine. To take your sites along, also c
 ## Development
 
 ```powershell
-php\8.3\php.exe tests\run.php                                        # PHP tests (any PHP 8.1+)
+php\8.5\php.exe tests\run.php                                        # PHP tests (any PHP 8.1+)
 powershell -NoProfile -ExecutionPolicy Bypass -File tests\ps\run.ps1  # Pester tests
+cd desktop; npm test                                                 # desktop app tests (Node.js 22.12+)
 ```
 
 - No Composer and no framework: plain PHP 8.1+ (mbstring, openssl), PSR-4 autoloader in
