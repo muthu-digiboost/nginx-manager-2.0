@@ -75,11 +75,16 @@ function apply(bundleDir, dest, version) {
     let copied = 0;
     let skipped = 0;
     const failed = [];
+    // PHP is part of the FIRST setup only. After that PHP versions belong to the user (added
+    // and removed in the app): an update never touches php/ - it neither overwrites a tuned
+    // php.ini nor brings back a version the user removed.
+    const firstSetup = installedVersion(dest) === null;
     const phpFolderExisted = {};   // php/<version> already there before this run -> left alone
     for (const rel of listFiles(bundleDir)) {
         const target = path.join(dest, ...rel.split('/'));
         const php = rel.match(/^php\/([^/]+)\//);
         if (php) {
+            if (!firstSetup) { skipped++; continue; }
             if (!(php[1] in phpFolderExisted)) phpFolderExisted[php[1]] = fs.existsSync(path.join(dest, 'php', php[1]));
             if (phpFolderExisted[php[1]]) { skipped++; continue; }
         }

@@ -181,9 +181,12 @@ Nothing is asked: on first start the app sets Nginx Manager up by itself and sta
 | macOS | `/Applications/Nginx Manager.app` | `~/NginxManager` |
 
 The server folder sits next to the app folder, not inside it, because every update replaces
-the app folder completely. The installer creates it and gives the PC's users write access to it
-(nginx and PHP write logs, sites and certificates there). If it cannot be written, the app
-uses `%LOCALAPPDATA%\Nginx Manager Server` instead, again without asking. A setup made by an
+the app folder completely. The installer (already Administrator) sets it up and refreshes the
+code on every update; it keeps the normal Program Files protection - users can read it, only
+Administrators can change it, so nobody can slip code into the scripts that run elevated.
+nginx and PHP run as Administrator and write their logs, sites and certificates there. Only
+if the installer's setup did not happen, the app sets up in
+`%LOCALAPPDATA%\Nginx Manager Server` instead, without asking. A setup made by an
 older version (`C:\NginxManager`) or a machine that already runs the manager is found and used;
 nothing is copied. The folder can be changed later from the tray icon. PHP needs the Microsoft
 Visual C++ 2015-2022 Redistributable (x64); the app checks this and links to Microsoft's
@@ -195,7 +198,9 @@ Windows shows "Windows protected your PC" (More info → Run anyway), macOS asks
 right-click → Open the first time.
 
 **Uninstall** (Windows, Settings → Apps): removes the app, its settings and Start at login.
-An unticked checkbox also deletes the server folder (nginx and PHP are stopped first).
+An unticked checkbox also deletes the server folder (nginx and PHP are stopped first, the
+"NginxManager2" logon task is removed; links inside the folder are removed, never followed).
+Left unticked, the folder and its record stay, and a reinstall uses it again.
 
 **Build it yourself** (Node.js 22.12 or newer):
 ```bash

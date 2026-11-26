@@ -22,10 +22,10 @@
 ;   - an "Uninstall" button
 ; On a real uninstall (not during an update):
 ;   - always: app data (deleteAppDataOnUninstall), the updater cache, the Start at login
-;     entry, the registry key
-;   - folder ticked: scripts\remove-install.ps1 in that folder (no window; the uninstaller
-;     is already elevated)
-;     stops nginx + PHP, waits until nothing runs from the folder, deletes it with retries
+;     entry
+;   - folder ticked: remove-install.ps1 from the APP's folder (no window; the uninstaller is
+;     already elevated) stops what runs from the server folder and deletes it; only then
+;     the folder record (HKCU\Software\Nginx Manager) is removed too
 ;   - a silent uninstall (/S) never deletes the folder
 
 !include nsDialogs.nsh
@@ -85,46 +85,53 @@ FunctionEnd
     ; Start at login (Electron names the value after the app's AppUserModelId)
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "com.semansys.nginx-manager"
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "electron.app.Nginx Manager"
-    ; downloaded updates
+    ; downloaded updates - the user's own LocalAppData (a per-machine uninstaller has
+    ; switched the shell folders to "all users")
+    SetShellVarContext current
     RMDir /r "$LOCALAPPDATA\nginx-manager-desktop-updater"
+    SetShellVarContext all
 
     ${If} $nmDeleteFolder == "1"
     ${AndIf} $nmFolder != ""
     ${AndIf} ${FileExists} "$nmFolder\data\.nm-app-version"
       DetailPrint "Stopping nginx and PHP and deleting $nmFolder ..."
-      ${If} ${FileExists} "$nmFolder\scripts\remove-install.ps1"
-        ; One elevated script stops the servers, waits until nothing runs from the folder,
-        ; deletes it with retries and checks the result (exit code 0 = gone).
-        ; nsExec: no console window (the uninstaller is already elevated - no new prompt).
-        nsExec::Exec '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$nmFolder\scripts\remove-install.ps1"'
-        Pop $0
-      ${Else}
-        ; A folder from an older version without remove-install.ps1.
-        nsExec::Exec '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$nmFolder\stop-all.ps1" -NoPause -WaitElevated'
-        Pop $0
-        Sleep 2000
-        RMDir /r "$nmFolder"
-      ${EndIf}
+      ; The script runs from the APP's protected folder (still there: this step comes before
+      ; the app files are removed), never from the folder being deleted - nothing in that
+      ; folder is executed with Administrator rights. It stops what runs from the folder,
+      ; deletes it without following links, removes the logon task. nsExec: no window.
+      nsExec::Exec '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$INSTDIR\resources\nginx-manager\scripts\remove-install.ps1" -Base "$nmFolder"'
+      Pop $0
       ${If} ${FileExists} "$nmFolder\*.*"
-        MessageBox MB_OK|MB_ICONINFORMATION "$nmFolder could not be deleted completely (Administrator permission not given, or files still in use). You can delete the folder by hand."
+        MessageBox MB_OK|MB_ICONINFORMATION "$nmFolder could not be deleted completely (files still in use). You can delete the folder by hand."
       ${Else}
         DetailPrint "$nmFolder deleted"
+        ; the record goes only with the folder - a kept folder is found again on reinstall
+        DeleteRegKey HKCU "Software\Nginx Manager"
       ${EndIf}
     ${EndIf}
-
-    DeleteRegKey HKCU "Software\Nginx Manager"
   ${EndIf}
 !macroend
 
 ; Install (and every update): the server folder "C:\Program Files\Nginx Manager Server" -
 ; NEXT TO the app folder, because every update replaces "C:\Program Files\Nginx Manager"
-; completely. The app sets Nginx Manager up in it on first start (no question). nginx and
-; PHP write logs, sites, certificates and settings there, so the PC's users get "Modify"
-; on this one folder (Users = S-1-5-32-545; the same access C:\NginxManager had).
+; completely. The INSTALLER (already Administrator) sets it up from the app's bundle and
+; refreshes it on updates; the folder keeps the normal Program Files protection (users read,
+; only Administrators write). nginx and PHP run as Administrator, so they can write their
+; logs, sites and certificates. No user can change code that later runs elevated.
 !macro customInstall
-  CreateDirectory "$PROGRAMFILES64\Nginx Manager Server"
-  nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$PROGRAMFILES64\Nginx Manager Server" /grant *S-1-5-32-545:(OI)(CI)M /T /C /Q'
-  Pop $0
+  StrCpy $0 "$PROGRAMFILES64\Nginx Manager Server"
+  CreateDirectory "$0"
+  ; earlier versions gave every user "Modify" on this folder - back to the inherited
+  ; Program Files permissions
+  nsExec::ExecToLog '"$SYSDIR\icacls.exe" "$0" /reset /T /C /Q'
+  Pop $1
+  ; set up / refresh: the app in its setup mode (copies the bundle, keeps .env, sites,
+  ; certificates, settings and PHP versions; checks that PHP runs), no window, then quits
+  DetailPrint "Setting up Nginx Manager in $0 ..."
+  System::Call 'Kernel32::SetEnvironmentVariable(t "NM_SETUP_TEST", t "$0")'
+  nsExec::ExecToLog '"$INSTDIR\${APP_EXECUTABLE_FILENAME}"'
+  Pop $1
+  System::Call 'Kernel32::SetEnvironmentVariable(t "NM_SETUP_TEST", i 0)'
 !macroend
 
 ; Install, update and uninstall: close the app if it runs - WITHOUT the "Nginx Manager cannot

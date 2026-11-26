@@ -119,6 +119,17 @@ test('an update while nginx runs: unchanged files are left alone, a locked file 
     fs.chmodSync(exe, 0o666);
 });
 
+test('updates never bring back a PHP version the user removed (PHP is copied only on the first setup)', () => {
+    const b = bundle();
+    const dest = tmp();
+    setup.apply(b, dest, '2.0.1');
+    assert.strictEqual(read(dest, 'php/8.4/php.exe'), 'PHP84');                       // first setup: there
+    fs.rmSync(path.join(dest, 'php', '8.4'), { recursive: true, force: true });     // removed in the app
+    setup.apply(b, dest, '2.0.2');                                                   // app update
+    assert.strictEqual(fs.existsSync(path.join(dest, 'php', '8.4')), false);
+    assert.strictEqual(read(dest, 'start-all.ps1'), 'new start');                    // code still refreshed
+});
+
 test('needsUpdate: only when the app is newer than what set the folder up', () => {
     const dest = tmp();
     assert.strictEqual(setup.needsUpdate(dest, '2.0.0'), false);    // not set up by the app: never touched

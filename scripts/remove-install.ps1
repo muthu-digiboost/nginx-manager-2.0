@@ -14,64 +14,72 @@
 
 <#
 .SYNOPSIS
-    Removes THIS Nginx Manager folder completely: stops nginx and PHP, then deletes it.
+    Deletes an Nginx Manager server folder completely: stops what runs from it, then deletes it.
 
 .DESCRIPTION
-    Called by the desktop app's uninstaller when "Also delete the Nginx Manager folder" is
-    ticked. Runs elevated (one UAC prompt; nginx and php-cgi were started as Administrator):
-      1. refuses unless the folder was set up by the app (data\.nm-app-version) - it can
-         only ever delete the folder it lives in, never a developer checkout
-      2. stops nginx and every php-cgi of this folder (stop-all logic), then force-stops any
-         process still running from inside the folder and waits until none is left
-      3. deletes the folder with retries (files may be released a moment late)
-    Exit code 0 = the folder is gone; 1 = something is left (the uninstaller says so).
+    Called by the desktop app's uninstaller (already elevated) when "Also delete the Nginx
+    Manager folder" is ticked. The uninstaller runs THIS copy from the app's own protected
+    folder (C:\Program Files\Nginx Manager\resources\...), never one from the folder being
+    deleted - so nothing in that folder is ever executed with Administrator rights.
+      1. refuses unless the folder was set up by the app (data\.nm-app-version) - never a
+         developer checkout or any other folder
+      2. force-stops every process running from inside the folder (nginx, php-cgi, ...) and
+         waits until none is left - no program from the folder is started for this
+      3. removes the "NginxManager2" logon task when it starts a script from this folder
+      4. deletes the folder with "rmdir /s /q", which removes junctions and symbolic links
+         WITHOUT following them (nothing outside the folder is ever deleted), with retries
+    Exit code 0 = the folder is gone; 1 = refused or something is left.
 
-.PARAMETER NoElevate
-    Do not ask for Administrator (tests only).
+.PARAMETER Base
+    The folder to delete (the uninstaller passes the folder the app recorded).
 
 .NOTES
-    Requires Admin : yes (self-elevates and waits)
+    Requires Admin : yes (the uninstaller is elevated; nginx and php-cgi run as Administrator)
     Called by      : desktop/build/installer.nsh (customUnInstall)
     Encoding       : ASCII only.
 #>
 [CmdletBinding()]
-param([switch]$NoElevate)
+param([Parameter(Mandatory)][string]$Base)
 
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'lib\Common.psm1') -Force
 
-if (-not $NoElevate) { Invoke-SelfElevate -ScriptPath $PSCommandPath -Wait }
-
-$base = Get-ManagerBase
-if (-not (Test-Path -LiteralPath (Join-Path $base 'data\.nm-app-version'))) {
+$base = [IO.Path]::GetFullPath($Base).TrimEnd('\')
+if ($base.Length -le 3 -or -not (Test-Path -LiteralPath (Join-Path $base 'data\.nm-app-version'))) {
     Write-Step "$base was not set up by the Nginx Manager app - not deleted." 'error'
     exit 1
 }
+$prefix = $base + '\'
 
-# -- 1. stop the servers of this folder ---------------------------------------------
-try {
-    if ((Get-NginxProcess).Count -gt 0) { [void](Invoke-Nginx @('-s', 'quit')) }
-    $settings = Get-ManagerSettings
-    foreach ($v in @(if ($settings) { $settings.php.versions })) { [void](Stop-PhpCgi $v) }
-} catch {
-    Write-Step ("Stopping the servers: " + $_.Exception.Message) 'warn'
-}
-
-# -- 2. nothing may run from inside the folder any more --------------------------------
+# -- 1. nothing may run from inside the folder any more ------------------------------
 for ($i = 0; $i -lt 20; $i++) {
     $left = @(Get-Process -ErrorAction SilentlyContinue | Where-Object {
         $p = $null; try { $p = $_.Path } catch { }
-        $p -and (Test-PathUnderBase $p)
+        $p -and $p.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)
     })
     if ($left.Count -eq 0) { break }
     $left | Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Milliseconds 500
 }
 
-# -- 3. delete, with retries -----------------------------------------------------------
+# -- 2. the logon task (scripts\install-autostart.ps1) must not point at a deleted folder --
+try {
+    $task = Get-ScheduledTask -TaskName 'NginxManager2' -ErrorAction SilentlyContinue
+    if ($task -and (@($task.Actions | Where-Object { "$($_.Arguments)" -like "*$base*" }).Count -gt 0)) {
+        Unregister-ScheduledTask -TaskName 'NginxManager2' -Confirm:$false
+        Write-Step 'Removed the "NginxManager2" logon task.' 'ok'
+    }
+} catch {
+    Write-Step ("Logon task: " + $_.Exception.Message) 'warn'
+}
+
+# -- 3. delete, with retries (rmdir /s never follows junctions or symbolic links) ------------
 Set-Location ([IO.Path]::GetTempPath())   # never stand inside the folder being deleted
 for ($i = 0; $i -lt 10 -and (Test-Path -LiteralPath $base); $i++) {
-    try { Remove-Item -LiteralPath $base -Recurse -Force -ErrorAction Stop } catch { Start-Sleep -Seconds 1 }
+    # errors go to nul INSIDE cmd: PowerShell 5.1 would turn rmdir's "in use" message into
+    # a terminating error here and stop the retries
+    & "$env:SystemRoot\System32\cmd.exe" /d /c "rmdir /s /q `"$base`" >nul 2>nul"
+    if (Test-Path -LiteralPath $base) { Start-Sleep -Seconds 1 }
 }
 if (Test-Path -LiteralPath $base) {
     Write-Step "Some files in $base could not be deleted." 'error'
