@@ -46,16 +46,35 @@
       "buildResources": "build"
     },
     "extraResources": [
-      { "from": "bundle/nginx-manager", "to": "nginx-manager" }
+      {
+        "from": "bundle/nginx-manager",
+        "to": "nginx-manager"
+      }
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "muthu-digiboost",
+        "repo": "nginx-manager-2.0",
+        "releaseType": "draft"
+      }
     ],
     "files": [
       "main.js",
+      "preload.js",
       "lib/**/*",
       "assets/**/*",
       "package.json"
     ],
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "build/icon.png"
     },
     "nsis": {
@@ -66,9 +85,19 @@
       "shortcutName": "Nginx Manager"
     },
     "mac": {
-      "target": [{ "target": "dmg", "arch": ["universal"] }],
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
       "category": "public.app-category.developer-tools",
       "icon": "build/icon.png"
     }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11"
   }
 }

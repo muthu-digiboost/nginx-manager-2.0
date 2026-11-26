@@ -161,6 +161,21 @@ app (Windows and macOS, built with Electron in `desktop/`):
 - The first time, the installed app asks for the Nginx Manager folder (the one with
   `start-all` and `manager/`) and remembers it.
 
+**Updates:** tray icon → **Settings...** (or **Check for updates...**) → **Check for updates** →
+**Update now**. Windows downloads the new version (checked against its SHA-512), installs it and
+restarts the app; macOS opens the download page of the new version (automatic installing
+needs an Apple-signed app). The app also checks by itself a little after starting and every
+6 hours, and tells you when a new version is out. Updates replace the app and refresh the
+manager's code in its folder - `.env`, sites, certificates, PHP versions, logs and backups
+are never touched. New versions come from this repository's GitHub releases: every push to
+`main` publishes one (`v2.0.<build number>`).
+
+**New PC:** the installer brings everything (the manager, nginx 1.26.3 and PHP 8.4 on Windows).
+On first start the app offers to set Nginx Manager up in `C:\NginxManager` (macOS:
+`~/NginxManager`; another folder can be chosen) and starts it. PHP needs the Microsoft Visual
+C++ 2015-2022 Redistributable (x64); the app checks this and links to Microsoft's download if
+it is missing. A machine that already runs the manager is detected and nothing is copied.
+
 **Install:** run `Nginx Manager Setup <version>.exe` (Windows) or open the `.dmg` (macOS).
 The builds are not code-signed: Windows shows "Windows protected your PC" (More info → Run
 anyway), macOS asks you to right-click → Open the first time.
@@ -190,9 +205,11 @@ merge from another branch:
   Options: `git config nm.buildBranch <branch>` (build another branch instead of `main`),
   `git config nm.autoBuild false` (off).
 - **On GitHub (GitHub Actions):** every push to `main` - including a merged pull request -
-  runs all tests (PHP, PowerShell, desktop) and then builds the Windows installer and the
-  macOS `.dmg` (`.github/workflows/desktop.yml`). The files are on the run's page under
-  **Artifacts** (kept 30 days). This needs the repository on GitHub.
+  runs all tests (PHP, PowerShell, desktop), then builds the Windows installer and the
+  macOS `.dmg` and **publishes them as a GitHub release** `v2.0.<build number>`
+  (`.github/workflows/desktop.yml`) - installed apps see it under Check for updates. The
+  files are also on the run's page under **Artifacts** (kept 30 days). Pushing the workflow
+  file needs a GitHub login with the `workflow` permission.
 
 ## Using the manager
 

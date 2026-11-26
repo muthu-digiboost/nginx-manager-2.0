@@ -29,7 +29,9 @@
 
 'use strict';
 
-const { app, BrowserWindow, Tray, Menu, nativeImage, dialog, shell, Notification } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, dialog, shell, Notification, ipcMain, net } = require('electron');
+const updates = require('./lib/updates');
+const pkg = require('./package.json');
 const path = require('path');
 const config = require('./lib/config');
 const scripts = require('./lib/scripts');
@@ -51,7 +53,7 @@ process.on('uncaughtException', onUnexpected);
 process.on('unhandledRejection', onUnexpected);
 
 const IS_MAC = process.platform === 'darwin';
-const SELFTEST = process.env.NM_SELFTEST === '1';
+const SELFTEST = process.env.NM_SELFTEST === '1' || process.env.NM_SELFTEST === 'settings';
 const STARTED_HIDDEN = process.argv.includes('--hidden');   // "Start at login"
 
 let win = null;
@@ -124,6 +126,13 @@ async function main() {
         loadingPage('error', 'The manager did not answer at ' + managerUrl + '.');
     }
     setInterval(refreshStatus, 10000);
+
+    registerSettingsIpc();
+    if (updateMode !== 'dev' && !SELFTEST) {
+        // Quietly look for a new version shortly after start and every 6 hours.
+        setTimeout(() => checkForUpdates({ quiet: true }), 15000);
+        setInterval(() => checkForUpdates({ quiet: true }), 6 * 3600 * 1000);
+    }
 
     if (SELFTEST) selfTest();
 }
@@ -227,6 +236,11 @@ function refreshMenu() {
         { label: 'Reload nginx', enabled: idle, click: () => runAction('reload') },
         { type: 'separator' },
         { label: 'Open in browser', click: () => shell.openExternal(managerUrl) },
+        { type: 'separator' },
+        ...(updateStatus.state === 'available' || updateStatus.state === 'ready'
+            ? [{ label: 'Update available: ' + updateStatus.version, click: () => openSettings() }] : []),
+        { label: 'Check for updates...', click: () => { openSettings(); checkForUpdates(); } },
+        { label: 'Settings...', click: () => openSettings() },
         {
             label: 'Start at login', type: 'checkbox', checked: !!(loginItem && loginItem.openAtLogin),
             enabled: app.isPackaged, click: (item) => setStartAtLogin(item.checked),
@@ -331,6 +345,109 @@ async function pickFolder({ explain = false } = {}) {
         await dialog.showMessageBox({ type: 'warning', message: 'That is not an Nginx Manager folder.',
             detail: 'Pick the folder that contains start-all and manager/bin/manager.php.' });
     }
+}
+
+// -- settings window + updates -------------------------------------------------------------------
+
+const updateMode = updates.mode(process.platform, app.isPackaged);
+let updateStatus = { state: updateMode === 'dev' ? 'dev' : 'idle' };
+let settingsWin = null;
+let autoUpdater = null;
+
+function setUpdateStatus(status) {
+    updateStatus = status;
+    const payload = { ...status, mode: updateMode, text: updates.statusText(status) };
+    if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('nm:update-status', payload);
+    refreshMenu();
+}
+
+/** electron-updater, set up once (Windows, installed app only). */
+function getAutoUpdater() {
+    if (autoUpdater) return autoUpdater;
+    autoUpdater = require('electron-updater').autoUpdater;
+    autoUpdater.autoDownload = false;            // the user clicks "Update now"
+    autoUpdater.autoInstallOnAppQuit = false;
+    autoUpdater.on('checking-for-update', () => setUpdateStatus({ state: 'checking' }));
+    autoUpdater.on('update-available', (info) => setUpdateStatus({ state: 'available', version: info.version }));
+    autoUpdater.on('update-not-available', () => setUpdateStatus({ state: 'none', current: app.getVersion() }));
+    autoUpdater.on('download-progress', (p) => setUpdateStatus({ state: 'downloading', percent: p.percent, version: updateStatus.version }));
+    autoUpdater.on('update-downloaded', (info) => setUpdateStatus({ state: 'ready', version: info.version }));
+    autoUpdater.on('error', (e) => setUpdateStatus({ state: 'error', message: String((e && e.message) || e).split('\n')[0] }));
+    return autoUpdater;
+}
+
+async function checkForUpdates({ quiet = false } = {}) {
+    if (updateMode === 'dev') { setUpdateStatus({ state: 'dev' }); return; }
+    if (['checking', 'downloading', 'ready'].includes(updateStatus.state)) return;
+    try {
+        if (updateMode === 'auto') {
+            await getAutoUpdater().checkForUpdates();
+        } else {
+            // macOS (unsigned app): ask GitHub's public API for the newest release.
+            setUpdateStatus({ state: 'checking' });
+            const pub = pkg.build.publish[0];
+            const res = await net.fetch(`https://api.github.com/repos/${pub.owner}/${pub.repo}/releases/latest`,
+                { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'nginx-manager-app' } });
+            if (!res.ok) throw new Error('GitHub answered ' + res.status);
+            const latest = String((await res.json()).tag_name || '').replace(/^v/i, '');
+            setUpdateStatus(updates.isNewer(latest, app.getVersion())
+                ? { state: 'available', version: latest }
+                : { state: 'none', current: app.getVersion() });
+        }
+    } catch (e) {
+        setUpdateStatus({ state: 'error', message: String((e && e.message) || e).split('\n')[0] });
+    }
+    if (quiet && updateStatus.state === 'available') {
+        notify('Nginx Manager ' + updateStatus.version + ' is available', 'Open Settings from the tray icon to update.');
+    }
+}
+
+async function installUpdate() {
+    if (updateStatus.state === 'ready' && updateMode === 'auto') {
+        // Restart into the new version. nginx and PHP keep running; on the next start the app
+        // refreshes the manager's code in its folder (data untouched - lib/setup.js).
+        quitting = true;
+        getAutoUpdater().quitAndInstall(false, true);
+    } else if (updateStatus.state === 'available' && updateMode === 'auto') {
+        setUpdateStatus({ state: 'downloading', percent: 0, version: updateStatus.version });
+        try {
+            await getAutoUpdater().downloadUpdate();
+        } catch (e) {
+            setUpdateStatus({ state: 'error', message: String((e && e.message) || e).split('\n')[0] });
+        }
+    } else if (updateStatus.state === 'available') {
+        shell.openExternal(updates.releasePage(pkg, updateStatus.version));
+    }
+}
+
+function openSettings() {
+    if (settingsWin && !settingsWin.isDestroyed()) { settingsWin.show(); settingsWin.focus(); return; }
+    settingsWin = new BrowserWindow({
+        width: 580, height: 640, resizable: false, minimizable: false, maximizable: false,
+        title: 'Nginx Manager - App settings', icon: iconPath('icon.png'), backgroundColor: '#f0f0f1',
+        webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true },
+    });
+    settingsWin.removeMenu();
+    settingsWin.webContents.on('will-navigate', (e) => e.preventDefault());
+    settingsWin.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    settingsWin.loadFile(path.join(__dirname, 'assets', 'settings.html'));
+}
+
+function registerSettingsIpc() {
+    // Only the Settings window may call these.
+    const fromSettings = (event) => settingsWin && !settingsWin.isDestroyed() && event.sender === settingsWin.webContents;
+    const guard = (fn) => (event, ...args) => (fromSettings(event) ? fn(...args) : null);
+    ipcMain.handle('nm:info', guard(() => ({
+        version: app.getVersion(),
+        base,
+        isPackaged: app.isPackaged,
+        startAtLogin: app.isPackaged ? app.getLoginItemSettings().openAtLogin : false,
+        status: { ...updateStatus, mode: updateMode, text: updates.statusText(updateStatus) },
+    })));
+    ipcMain.handle('nm:check-updates', guard(() => checkForUpdates()));
+    ipcMain.handle('nm:install-update', guard(() => installUpdate()));
+    ipcMain.handle('nm:start-at-login', guard((on) => setStartAtLogin(!!on)));
+    ipcMain.handle('nm:change-folder', guard(() => changeFolder()));
 }
 
 // -- first run on a new machine ---------------------------------------------------------------
@@ -444,6 +561,19 @@ function fail(e) {
 /** NM_SELFTEST=1: is the manager shown in the window? Prints the result and quits. */
 function selfTest() {
     const timer = setTimeout(() => { console.log('SELFTEST fail timeout'); app.exit(1); }, 200000);
+    if (process.env.NM_SELFTEST === 'settings') {
+        // The Settings window: does it load and show the app's data through preload.js?
+        openSettings();
+        settingsWin.webContents.on('did-finish-load', () => setTimeout(async () => {
+            await checkForUpdates();
+            const shown = await settingsWin.webContents.executeJavaScript(
+                "[document.getElementById('version').textContent, document.getElementById('base').textContent, document.getElementById('status').textContent].join(' | ')");
+            clearTimeout(timer);
+            console.log('SELFTEST settings ' + shown);
+            app.exit(0);
+        }, 800));
+        return;
+    }
     const report = () => {
         const url = win.webContents.getURL();
         if (!url.startsWith('http')) return;   // still the loading page

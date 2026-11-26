@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<!--
+******************************************************************************
+*
+*  Project : nginx-manager-2.0
+*  File    : settings.html
+*  Date    : 26/11/2026
+*  Author  : Semansys Development Team
+*
+*  Copyright (c) 2026
+*  Tel: +91 97863 37914
+*  Email: dev.digiboost.muthu@gmail.com
+*  All rights reserved, see the LICENSE file for more information.
+*
+******************************************************************************
+  The desktop app's Settings window (tray > Settings...): version and updates, the Nginx
+  Manager folder, Start at login. Talks to the app only through window.nm (preload.js).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self'">
+<title>Nginx Manager - App settings</title>
+<style>
+    body { margin: 0; background: #f0f0f1; color: #1d2327; font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    header { display: flex; align-items: center; gap: 12px; padding: 18px 24px; background: #1d2327; color: #fff; }
+    header img { width: 34px; height: 34px; }
+    header h1 { margin: 0; font-size: 17px; font-weight: 600; }
+    header .ver { color: #a7aaad; font-size: 13px; }
+    main { padding: 20px 24px; }
+    .card { background: #fff; border: 1px solid #dcdcde; border-radius: 4px; padding: 16px 18px; margin-bottom: 16px; }
+    .card h2 { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .muted { color: #646970; font-size: 13px; }
+    .path { font-family: Consolas, Menlo, monospace; font-size: 12.5px; background: #f6f7f7; padding: 4px 8px; border-radius: 3px; word-break: break-all; }
+    button { font: inherit; font-size: 13px; padding: 6px 14px; border-radius: 3px; cursor: pointer;
+             border: 1px solid #2271b1; background: #2271b1; color: #fff; }
+    button.ghost { background: #f6f7f7; color: #2271b1; }
+    button:disabled { opacity: .55; cursor: default; }
+    #status { margin: 10px 0 0; min-height: 21px; }
+    #status.error { color: #b32d2e; }
+    #status.ok { color: #00a32a; }
+    progress { width: 100%; height: 8px; margin-top: 8px; display: none; }
+    label.check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+    <img src="icon.png" alt="">
+    <div><h1>Nginx Manager</h1><div class="ver" id="version">Version ...</div></div>
+</header>
+<main>
+    <section class="card">
+        <h2>Updates</h2>
+        <div class="row">
+            <button id="check">Check for updates</button>
+            <button id="install" class="ghost" hidden>Update now</button>
+        </div>
+        <p id="status" class="muted"></p>
+        <progress id="progress" max="100" value="0"></progress>
+        <p class="muted" style="margin: 8px 0 0">Updates replace the app and refresh the manager's code. Your sites,
+            certificates, PHP versions and settings stay as they are.</p>
+    </section>
+
+    <section class="card">
+        <h2>Nginx Manager folder</h2>
+        <div class="row">
+            <span class="path" id="base">...</span>
+            <button id="folder" class="ghost">Change...</button>
+        </div>
+        <p class="muted" style="margin: 8px 0 0">Where the manager, your sites and settings live.</p>
+    </section>
+
+    <section class="card">
+        <h2>Start</h2>
+        <label class="check"><input type="checkbox" id="login"> Start Nginx Manager when I log in</label>
+    </section>
+</main>
+<script src="settings.js"></script>
+</body>
+</html>
