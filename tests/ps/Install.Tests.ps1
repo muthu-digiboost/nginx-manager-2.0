@@ -109,6 +109,13 @@ Describe 'Test-FolderMovable' {
 Describe 'Get-VcRuntimeHint' {
     It 'maps old compilers'    { Get-VcRuntimeHint 'php-5.6.40-Win32-VC11-x64.zip' | Should Match '2012' }
     It 'maps modern compilers' { Get-VcRuntimeHint 'php-8.3.37-Win32-vs16-x64.zip' | Should Match '2015-2022' }
+    It 'gives the Microsoft download for the current runtime' {
+        Get-VcRuntimeHint 'php-8.5.12-Win32-vs17-x64.zip' | Should Match ([regex]::Escape('https://aka.ms/vs/17/release/vc_redist.x64.exe'))
+    }
+    It 'points older runtimes (2012, 2008) to Microsoft''s list of supported downloads' {
+        Get-VcRuntimeHint 'php-5.6.40-Win32-VC11-x64.zip' | Should Match ([regex]::Escape('https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist'))
+        Get-VcRuntimeHint 'php-5.3.29-Win32-VC9-x86.zip'  | Should Match '2008.*learn\.microsoft\.com'
+    }
 }
 
 Describe 'Find-PhpProblems (manager PHP switch)' {

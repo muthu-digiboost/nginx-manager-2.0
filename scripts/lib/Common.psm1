@@ -526,14 +526,19 @@ function Get-VcRuntimeHint {
     .SYNOPSIS  Which Microsoft Visual C++ runtime a PHP zip needs, from the compiler in its name.
     #>
     param([Parameter(Mandatory)][string]$ZipName)
+    # Microsoft's own links: the current runtime downloads directly; the older ones are listed
+    # (with their downloads) on Microsoft's page of supported Visual C++ runtimes.
+    $current = 'https://aka.ms/vs/17/release/vc_redist.x64.exe'
+    $older   = 'https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist'
+    $arch    = if ($ZipName -match '-x86\.zip$') { 'x86' } else { 'x64' }
     if ($ZipName -match '-(vc|vs)(\d+)-') {
         switch ([int]$Matches[2]) {
-            9       { return 'Microsoft Visual C++ 2008 Redistributable (x64)' }
-            11      { return 'Microsoft Visual C++ 2012 Redistributable (x64)' }
-            default { return 'Microsoft Visual C++ 2015-2022 Redistributable (x64), latest version' }
+            9       { return "Microsoft Visual C++ 2008 Redistributable ($arch) - see $older" }
+            11      { return "Microsoft Visual C++ 2012 Redistributable ($arch) - see $older" }
+            default { return "Microsoft Visual C++ 2015-2022 Redistributable (x64), latest version - $current" }
         }
     }
-    return 'the Microsoft Visual C++ Redistributable (x64) that matches this PHP build'
+    return "the Microsoft Visual C++ Redistributable that matches this PHP build - see $older"
 }
 
 function Get-PhpVersionById {
