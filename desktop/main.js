@@ -31,6 +31,7 @@
 
 const { app, BrowserWindow, Tray, Menu, nativeImage, dialog, shell, Notification, ipcMain, net } = require('electron');
 const updates = require('./lib/updates');
+const applinks = require('./lib/applinks');
 const pkg = require('./package.json');
 const path = require('path');
 const config = require('./lib/config');
@@ -187,11 +188,16 @@ function createWindow(settings) {
         webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
     });
     win.removeMenu();
+    // "NginxManagerApp/<version>": the manager shows app-only buttons (Check for updates).
+    win.webContents.setUserAgent(applinks.userAgent(win.webContents.getUserAgent(), app.getVersion()));
     loadingPage('starting');
 
-    // Only the manager inside; everything else in the default browser.
+    // Only the manager inside; everything else in the default browser; the app's own links
+    // (nginx-manager://check-updates, ://settings) are handled by the app.
     win.webContents.setWindowOpenHandler(({ url }) => {
-        if (health.isManagerUrl(url, managerUrl)) {
+        if (runAppLink(url)) {
+            // handled
+        } else if (health.isManagerUrl(url, managerUrl)) {
             win.loadURL(url);
         } else {
             openExternal(url);
@@ -201,7 +207,7 @@ function createWindow(settings) {
     win.webContents.on('will-navigate', (event, url) => {
         if (url.startsWith('file:') || health.isManagerUrl(url, managerUrl)) return;
         event.preventDefault();
-        openExternal(url);
+        if (!runAppLink(url)) openExternal(url);
     });
 
     let saveTimer = null;
@@ -408,6 +414,15 @@ function getAutoUpdater() {
     autoUpdater.on('update-downloaded', (info) => setUpdateStatus({ state: 'ready', version: info.version }));
     autoUpdater.on('error', (e) => setUpdateStatus({ state: 'error', message: String((e && e.message) || e).split('\n')[0] }));
     return autoUpdater;
+}
+
+/** A manager page asked the app for something (see lib/applinks.js). @returns {boolean} handled */
+function runAppLink(url) {
+    const action = applinks.actionFor(url);
+    if (!action) return false;
+    openSettings();
+    if (action === 'check-updates' && updateMode !== 'dev') checkForUpdates();
+    return true;
 }
 
 async function checkForUpdates({ quiet = false } = {}) {

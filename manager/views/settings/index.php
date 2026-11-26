@@ -15,7 +15,9 @@
 
 /* View: settings/index | Settings with a section menu on the left and a sticky Save bar.
    Data: $folders (list of {name, var, path, main}), $usage (var => sites), $extraPath (list),
-         $openssl (setting), $opensslFound (?string), $ts, $timezone, $zones, $system (label => value) */
+         $openssl (setting), $opensslFound (?string), $ts, $timezone, $zones, $system (label => value),
+         $desktopApp (?string: the app's version when shown inside the desktop app) */
+$desktopApp = $desktopApp ?? null;
 $exists = static fn(string $p): bool => $p !== '' && is_dir($p);
 ?>
 <form method="post" action="/settings" class="settings-layout">
@@ -26,6 +28,7 @@ $exists = static fn(string $p): bool => $p !== '' && is_dir($p);
         <a href="#php">PHP</a>
         <a href="#certificates">Certificates</a>
         <a href="#system">System</a>
+        <?php if ($desktopApp !== null): ?><a href="#desktop-app">Desktop app</a><?php endif; ?>
     </nav>
 
     <div class="settings-sections">
@@ -160,6 +163,24 @@ $exists = static fn(string $p): bool => $p !== '' && is_dir($p);
                 <?php endforeach; ?>
             </table>
         </section>
+
+        <?php if ($desktopApp !== null): ?>
+        <!-- Desktop app (only inside the app: its links are handled by the app) --------------- -->
+        <section class="card" id="desktop-app">
+            <h2 class="card-title">Desktop app <span class="muted">updates come from GitHub releases</span></h2>
+            <table class="table">
+                <tr><td class="muted" style="width: 200px">Version</td><td class="mono"><?= e($desktopApp) ?></td></tr>
+                <tr>
+                    <td class="muted">Updates</td>
+                    <td>
+                        <a class="btn" href="<?= e(\NginxManager\Support\DesktopApp::CHECK_UPDATES_URL) ?>">Check for updates</a>
+                        <a class="btn btn-secondary" href="<?= e(\NginxManager\Support\DesktopApp::SETTINGS_URL) ?>">App settings</a>
+                        <div class="muted small" style="margin-top: 6px">Opens the app's Settings window and checks for a new version; <b>Update now</b> installs it - sites, certificates and settings are kept.</div>
+                    </td>
+                </tr>
+            </table>
+        </section>
+        <?php endif; ?>
     </div>
 
     <div class="savebar">

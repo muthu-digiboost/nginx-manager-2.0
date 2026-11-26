@@ -163,7 +163,8 @@ app (Windows and macOS, built with Electron in `desktop/`):
 - No PowerShell windows: the app runs the scripts hidden (`-Hidden`); Windows only shows
   its Administrator prompt.
 
-**Updates:** tray icon → **Settings...** (or **Check for updates...**) → **Check for updates** →
+**Updates:** in the manager **Settings → Desktop app → Check for updates** (shown only inside
+the app), or tray icon → **Settings...** (or **Check for updates...**) → **Check for updates** →
 **Update now**. Windows downloads the new version (checked against its SHA-512), installs it and
 restarts the app; macOS opens the download page of the new version (automatic installing
 needs an Apple-signed app). The app also checks by itself a little after starting and every

@@ -35,6 +35,7 @@ use NginxManager\Http\Flash;
 use NginxManager\Http\Request;
 use NginxManager\Http\Response;
 use NginxManager\Nginx\NginxConfigWriter;
+use NginxManager\Support\DesktopApp;
 use NginxManager\Support\Env;
 use NginxManager\Support\EnvFile;
 use NginxManager\Support\Paths;
@@ -67,6 +68,8 @@ final class SettingsController
             'ts'        => Env::get('PHP_THREAD_SAFETY', 'ts') === 'nts' ? 'nts' : 'ts',
             'timezone'  => Timezone::configured(),
             'zones'     => timezone_identifiers_list(),
+            // inside the desktop app: its version (the "Desktop app" card with Check for updates)
+            'desktopApp' => DesktopApp::versionFromUserAgent($request->server('HTTP_USER_AGENT')),
             'system'    => [
                 'Install folder'      => Paths::base(),
                 'Manager address'     => 'http://' . Env::get('MANAGER_HOST', '127.0.0.1') . ':' . Env::int('MANAGER_PORT', 8080),
