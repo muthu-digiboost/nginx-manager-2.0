@@ -28,7 +28,7 @@ test('Windows: PowerShell scripts with -NoPause (they ask for Administrator them
     const base = 'Q:\\My Tools\\nginx-manager';
     assert.deepStrictEqual(scripts.commandFor('win32', 'start', base), {
         file: 'powershell.exe',
-        args: ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.win32.join(base, 'start-all.ps1'), '-NoPause'],
+        args: ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.win32.join(base, 'start-all.ps1'), '-NoPause', '-Hidden'],   // no PowerShell window
     });
     assert.strictEqual(scripts.commandFor('win32', 'stop', base).args[4], path.win32.join(base, 'stop-all.ps1'));
     assert.strictEqual(scripts.commandFor('win32', 'restart', base).args[4], path.win32.join(base, 'restart-all.ps1'));

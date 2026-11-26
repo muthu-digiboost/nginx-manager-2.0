@@ -21,12 +21,13 @@
  *   - the project's code and configs: ONLY files tracked by git (so .env, data/, your sites
  *     in conf/sites/, certificates in ssl/, logs and backups can never be included);
  *     desktop/, docs/, tests/ and CI files are left out
- *   - Windows: nginx.exe from nginx.org (pinned SHA-256) and PHP 8.4 (thread safe, x64) from
- *     php.net and checked against php.net's SHA-256 - never the local php/ folder (it has
- *     your php.ini and extensions); php.ini is created fresh from php.ini-development
+ *   - Windows: nginx.exe from nginx.org and PHP 8.5.12 (thread safe, x64) from php.net, both
+ *     with a pinned SHA-256 - never the local php/ folder (it has your php.ini and
+ *     extensions); php.ini is created fresh from php.ini-development. No PHP 8.4: other
+ *     versions are added from the app (PHP Versions -> Add).
  * Safety check: the build FAILS if the bundle contains .env, data files, site configs,
  *   certificates/keys, logs/backups, or any value from your .env (e.g. project folders).
- * Options (environment): NM_BUNDLE_PHP=8.4 (branch), NM_BUNDLE_TARGET=win32|darwin.
+ * Options (environment): NM_BUNDLE_PHP=8.5.12 (exact PHP version), NM_BUNDLE_TARGET=win32|darwin.
  */
 
 'use strict';
@@ -41,7 +42,14 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const OUT = path.join(__dirname, '..', 'bundle', 'nginx-manager');
 const CACHE = path.join(__dirname, '..', '.cache');
 const TARGET = process.env.NM_BUNDLE_TARGET || process.platform;
-const PHP_BRANCH = process.env.NM_BUNDLE_PHP || '8.4';
+// The PHP in the installer (the manager runs on it; more versions are added from the app).
+const PHP_BRANCH = process.env.NM_BUNDLE_PHP || '8.5.12';
+const PHP_FOLDER = PHP_BRANCH.split('.').slice(0, 2).join('.');   // php/8.5 - the manager names folders by major.minor
+// SHA-256 of php.net's official zips, pinned when a version was chosen (php.net publishes
+// checksums only for the newest release of each branch; older ones move to archives/).
+const PHP_SHA256 = {
+    '8.5.12': '660f3ff6ccbdf60f9607ef54bdba85ee22a58d61fd3633b38a93d57fb7c3d184',
+};
 
 const EXCLUDE_DIRS = ['desktop/', 'docs/', 'tests/', '.github/', '.githooks/'];
 const EXCLUDE_FILES = ['.gitignore', '.gitattributes'];
@@ -126,27 +134,37 @@ async function bundleNginx() {
 }
 
 async function bundlePhp() {
-    const releases = JSON.parse((await get(PHP_BASES.map((b) => b + 'releases.json'))).toString('utf8'));
-    const branch = releases[PHP_BRANCH];
-    if (!branch) throw new Error(`php.net lists no PHP ${PHP_BRANCH}`);
-    const key = Object.keys(branch).find((k) => /^ts-vs\d+-x64$/.test(k));
-    const zip = key && branch[key].zip;
-    if (!zip || !zip.path || !zip.sha256) throw new Error(`No thread-safe x64 build of PHP ${PHP_BRANCH} with a checksum`);
-
+    // One exact version (NM_BUNDLE_PHP, default 8.5.12) - never "the latest": the same PHP in
+    // every installer. Its SHA-256 is the pinned one, or php.net's own when it publishes one
+    // for that version; with neither the build stops (no unchecked PHP is ever bundled).
+    let expected = PHP_SHA256[PHP_BRANCH] || null;
+    if (!expected) {
+        const releases = JSON.parse((await get(PHP_BASES.map((b) => b + 'releases.json'))).toString('utf8'));
+        const branch = releases[PHP_FOLDER];
+        const key = branch && Object.keys(branch).find((k) => /^ts-vs\d+-x64$/.test(k));
+        if (branch && branch.version === PHP_BRANCH && key && branch[key].zip && branch[key].zip.sha256) {
+            expected = String(branch[key].zip.sha256).toLowerCase();
+        } else {
+            throw new Error(`No SHA-256 known for PHP ${PHP_BRANCH} - add it to PHP_SHA256 in scripts/bundle.js`);
+        }
+    }
+    const zipName = `php-${PHP_BRANCH}-Win32-vs17-x64.zip`;
     fs.mkdirSync(CACHE, { recursive: true });
-    const zipFile = path.join(CACHE, path.basename(zip.path));
+    const zipFile = path.join(CACHE, zipName);
     if (!fs.existsSync(zipFile)) {
-        log(`downloading ${zip.path} from php.net`);
-        fs.writeFileSync(zipFile, await get(PHP_BASES.map((b) => b + zip.path)));
+        log(`downloading ${zipName} from php.net`);
+        const urls = [];
+        for (const base of PHP_BASES) urls.push(base + zipName, base + 'archives/' + zipName);
+        fs.writeFileSync(zipFile, await get(urls));
     }
     const sha = crypto.createHash('sha256').update(fs.readFileSync(zipFile)).digest('hex');
-    if (sha.toLowerCase() !== String(zip.sha256).toLowerCase()) {
+    if (sha !== expected) {
         fs.unlinkSync(zipFile);
-        throw new Error(`SHA-256 mismatch for ${zip.path} - download removed`);
+        throw new Error(`SHA-256 mismatch for ${zipName} - download removed`);
     }
-    log(`PHP ${branch.version} - SHA-256 verified`);
+    log(`PHP ${PHP_BRANCH} - SHA-256 verified`);
 
-    const phpDir = path.join(OUT, 'php', PHP_BRANCH);
+    const phpDir = path.join(OUT, 'php', PHP_FOLDER);
     fs.mkdirSync(phpDir, { recursive: true });
     execFileSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command',
         `Expand-Archive -LiteralPath '${zipFile.replace(/'/g, "''")}' -DestinationPath '${phpDir.replace(/'/g, "''")}' -Force`]);
@@ -158,7 +176,7 @@ async function bundlePhp() {
         `$t = [IO.File]::ReadAllText('${path.join(phpDir, 'php.ini-development').replace(/'/g, "''")}'); ` +
         `$ini = Enable-PhpIniDefaults $t @('curl','fileinfo','gd','gd2','intl','mbstring','mysqli','openssl','pdo_mysql','pdo_sqlite','sodium','zip'); ` +
         `Write-Utf8NoBom '${path.join(phpDir, 'php.ini').replace(/'/g, "''")}' $ini`]);
-    log(`php/${PHP_BRANCH}/php.ini created from php.ini-development`);
+    log(`php/${PHP_FOLDER}/php.ini created from php.ini-development`);
 }
 
 /** Fails when anything private could have slipped into the bundle. */
@@ -168,7 +186,7 @@ function safetyCheck() {
     // Complete? A new PC must get everything it needs (an incomplete installer was once published).
     const required = ['manager/bin/manager.php', 'start-all.ps1', 'start-all.sh', 'conf/nginx.conf', '.env.example'];
     if (TARGET === 'win32') {
-        required.push('nginx.exe', `php/${PHP_BRANCH}/php.exe`, `php/${PHP_BRANCH}/php-cgi.exe`, `php/${PHP_BRANCH}/php.ini`);
+        required.push('nginx.exe', `php/${PHP_FOLDER}/php.exe`, `php/${PHP_FOLDER}/php-cgi.exe`, `php/${PHP_FOLDER}/php.ini`);
     }
     const missing = required.filter((rel) => !files.includes(rel));
     if (missing.length) throw new Error('The bundle is incomplete - missing:\n  ' + missing.join('\n  '));

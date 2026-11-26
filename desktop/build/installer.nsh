@@ -23,7 +23,8 @@
 ; On a real uninstall (not during an update):
 ;   - always: app data (deleteAppDataOnUninstall), the updater cache, the Start at login
 ;     entry, the registry key
-;   - folder ticked: scripts\remove-install.ps1 in that folder (one Administrator prompt)
+;   - folder ticked: scripts\remove-install.ps1 in that folder (no window; the uninstaller
+;     is already elevated)
 ;     stops nginx + PHP, waits until nothing runs from the folder, deletes it with retries
 ;   - a silent uninstall (/S) never deletes the folder
 
@@ -94,10 +95,13 @@ FunctionEnd
       ${If} ${FileExists} "$nmFolder\scripts\remove-install.ps1"
         ; One elevated script stops the servers, waits until nothing runs from the folder,
         ; deletes it with retries and checks the result (exit code 0 = gone).
-        ExecWait '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$nmFolder\scripts\remove-install.ps1"' $0
+        ; nsExec: no console window (the uninstaller is already elevated - no new prompt).
+        nsExec::Exec '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$nmFolder\scripts\remove-install.ps1"'
+        Pop $0
       ${Else}
         ; A folder from an older version without remove-install.ps1.
-        ExecWait '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "$nmFolder\stop-all.ps1" -NoPause -WaitElevated'
+        nsExec::Exec '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$nmFolder\stop-all.ps1" -NoPause -WaitElevated'
+        Pop $0
         Sleep 2000
         RMDir /r "$nmFolder"
       ${EndIf}

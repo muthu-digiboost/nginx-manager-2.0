@@ -632,6 +632,24 @@ function Test-IsAdmin {
         [Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 
+function Get-SelfElevateParams {
+    <#
+    .SYNOPSIS  The Start-Process parameters for the Administrator copy of a script.
+    .DESCRIPTION
+        -Hidden (the desktop app starts the scripts): the elevated PowerShell runs without a
+        window. Started by hand the window stays, it shows what happens.
+    #>
+    param(
+        [Parameter(Mandatory)][string]$ScriptPath,
+        [string[]]$Arguments = @(),
+        [switch]$Hidden
+    )
+    $argLine = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $ScriptPath + '"')) + $Arguments
+    $params = @{ FilePath = 'powershell.exe'; Verb = 'RunAs'; ArgumentList = ($argLine -join ' ') }
+    if ($Hidden) { $params.WindowStyle = 'Hidden' }
+    return $params
+}
+
 function Invoke-SelfElevate {
     <#
     .SYNOPSIS  Relaunches a script as Administrator (one UAC prompt) and exits this one.
@@ -645,15 +663,17 @@ function Invoke-SelfElevate {
         [string[]]$Arguments = @(),
         # Wait for the elevated copy to finish (the desktop app's uninstaller stops the
         # servers this way before deleting the Nginx Manager folder).
-        [switch]$Wait
+        [switch]$Wait,
+        # No PowerShell window for the elevated copy (the desktop app runs the scripts).
+        [switch]$Hidden
     )
     if (Test-IsAdmin) { return }
-    $argLine = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $ScriptPath + '"')) + $Arguments
+    $params = Get-SelfElevateParams -ScriptPath $ScriptPath -Arguments $Arguments -Hidden:$Hidden
     if ($Wait) {
-        $p = Start-Process -FilePath 'powershell.exe' -Verb RunAs -ArgumentList ($argLine -join ' ') -Wait -PassThru
+        $p = Start-Process @params -Wait -PassThru
         exit $p.ExitCode
     }
-    Start-Process -FilePath 'powershell.exe' -Verb RunAs -ArgumentList ($argLine -join ' ') | Out-Null
+    Start-Process @params | Out-Null
     exit 0
 }
 

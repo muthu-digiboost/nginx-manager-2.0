@@ -23,6 +23,9 @@
       1. nginx: graceful "nginx -s quit", then force-stop leftovers after 3 seconds.
       2. PHP  : stops the php-cgi listening on each configured port.
 
+.PARAMETER Hidden
+    The Administrator copy runs without a PowerShell window (the desktop app passes this).
+
 .PARAMETER NoPause
     Do not wait for a key press at the end.
 
@@ -39,14 +42,15 @@
 [CmdletBinding()]
 param([switch]$NoPause,
     [switch]$NoElevate,
-    [switch]$WaitElevated)   # wait for the elevated run to finish (used by the app's uninstaller)
+    [switch]$WaitElevated,   # wait for the elevated run to finish (used by the app's uninstaller)
+    [switch]$Hidden)         # no PowerShell window (the desktop app starts this script)
 
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'scripts\lib\Common.psm1') -Force
 
 $passArgs = @()
 if ($NoPause) { $passArgs += '-NoPause' }
-if (-not $NoElevate) { Invoke-SelfElevate -ScriptPath $PSCommandPath -Arguments $passArgs -Wait:$WaitElevated }
+if (-not $NoElevate) { Invoke-SelfElevate -ScriptPath $PSCommandPath -Arguments $passArgs -Wait:$WaitElevated -Hidden:$Hidden }
 
 $exitCode = 0
 try {

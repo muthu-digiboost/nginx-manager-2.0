@@ -199,3 +199,16 @@ Describe 'Update-ManagerSettings (final review #4)' {
     }
     $env:NM_BASE = $null
 }
+
+Describe 'Get-SelfElevateParams (the Administrator copy of a script)' {
+    It 'started by the desktop app (-Hidden): no PowerShell window' {
+        $p = Get-SelfElevateParams -ScriptPath 'C:\Program Files\Nginx Manager Server\start-all.ps1' -Arguments @('-NoPause') -Hidden
+        $p.WindowStyle | Should Be 'Hidden'
+        $p.Verb | Should Be 'RunAs'
+        $p.ArgumentList | Should Be '-NoProfile -ExecutionPolicy Bypass -File "C:\Program Files\Nginx Manager Server\start-all.ps1" -NoPause'
+    }
+    It 'started by hand: the window stays visible (it shows the progress)' {
+        $p = Get-SelfElevateParams -ScriptPath 'E:\x\start-all.ps1'
+        $p.ContainsKey('WindowStyle') | Should Be $false
+    }
+}

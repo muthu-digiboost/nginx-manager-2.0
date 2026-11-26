@@ -44,7 +44,7 @@ function commandFor(platform, action, base) {
     if (platform === 'win32') {
         return {
             file: 'powershell.exe',
-            args: ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.win32.join(base, entry.win32), '-NoPause'],
+            args: ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', path.win32.join(base, entry.win32), '-NoPause', '-Hidden'],   // -Hidden: no PowerShell window
         };
     }
     return { file: '/bin/bash', args: [path.posix.join(base, entry.other)] };

@@ -170,7 +170,9 @@ manager's code in its folder - `.env`, sites, certificates, PHP versions, logs a
 are never touched. New versions come from this repository's GitHub releases: every push to
 `main` publishes one (`v2.0.<build number>`).
 
-**New PC:** the installer brings everything (the manager, nginx 1.26.3 and PHP 8.4 on Windows).
+**New PC:** the installer brings everything (the manager, nginx 1.26.3 and PHP 8.5.12 on Windows; add
+more PHP versions in the app under PHP Versions → Add). The servers start in the background,
+without a PowerShell window (Windows only asks for Administrator).
 Nothing is asked: on first start the app sets Nginx Manager up by itself and starts it.
 
 | | App | Server folder (nginx, PHP, your sites, certificates, settings) |
@@ -202,6 +204,8 @@ npm ci
 npm start            # run the app from the repo (uses the folder above desktop/)
 npm test             # tests of the app's own logic
 npm run dist:win     # -> desktop/dist/Nginx Manager Setup <version>.exe   (on Windows)
+                     #    bundled PHP: 8.5.12 (pinned SHA-256); another exact version with
+                     #    NM_BUNDLE_PHP=8.5.13 npm run dist:win (php.net's checksum is used)
 npm run dist:mac     # -> desktop/dist/Nginx Manager-<version>-universal.dmg (on a Mac)
 npm run icons        # re-create the icons from manager/public/assets/logo.svg
 ```

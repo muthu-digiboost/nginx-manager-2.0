@@ -32,6 +32,9 @@
                         until started from the PHP Versions page.
       8. nginx        - tests the config; reloads a running nginx or starts a new one.
 
+.PARAMETER Hidden
+    The Administrator copy runs without a PowerShell window (the desktop app passes this).
+
 .PARAMETER NoPause
     Do not wait for a key press at the end (used by the scheduled task).
 
@@ -55,7 +58,8 @@
 param(
     [switch]$NoPause,
     [switch]$NoElevate,
-    [switch]$Open
+    [switch]$Open,
+    [switch]$Hidden   # no PowerShell window (the desktop app starts this script)
 )
 
 $ErrorActionPreference = 'Stop'
@@ -64,7 +68,7 @@ Import-Module (Join-Path $PSScriptRoot 'scripts\lib\Common.psm1') -Force
 $passArgs = @()
 if ($NoPause) { $passArgs += '-NoPause' }
 if ($Open)    { $passArgs += '-Open' }
-if (-not $NoElevate) { Invoke-SelfElevate -ScriptPath $PSCommandPath -Arguments $passArgs }
+if (-not $NoElevate) { Invoke-SelfElevate -ScriptPath $PSCommandPath -Arguments $passArgs -Hidden:$Hidden }
 
 $exitCode = 0
 try {

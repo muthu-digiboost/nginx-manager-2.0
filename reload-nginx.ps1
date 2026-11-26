@@ -20,6 +20,9 @@
     Replaces v1's reload-nginx.bat. A reload never happens with a broken config,
     so running sites keep working while you fix the error that is printed.
 
+.PARAMETER Hidden
+    The Administrator copy runs without a PowerShell window (the desktop app passes this).
+
 .PARAMETER NoPause
     Do not wait for a key press at the end.
 
@@ -30,14 +33,14 @@
     Encoding       : ASCII only.
 #>
 [CmdletBinding()]
-param([switch]$NoPause)
+param([switch]$NoPause, [switch]$Hidden)   # -Hidden: no PowerShell window (desktop app)
 
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'scripts\lib\Common.psm1') -Force
 
 $passArgs = @()
 if ($NoPause) { $passArgs += '-NoPause' }
-Invoke-SelfElevate -ScriptPath $PSCommandPath -Arguments $passArgs
+Invoke-SelfElevate -ScriptPath $PSCommandPath -Arguments $passArgs -Hidden:$Hidden
 
 $exitCode = 0
 try {

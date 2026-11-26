@@ -16,6 +16,9 @@
 .SYNOPSIS
     Restarts everything: stop-all.ps1 followed by start-all.ps1.
 
+.PARAMETER Hidden
+    The Administrator copy runs without a PowerShell window (the desktop app passes this).
+
 .PARAMETER NoPause
     Do not wait for a key press at the end.
 
@@ -28,7 +31,7 @@
     Encoding       : ASCII only.
 #>
 [CmdletBinding()]
-param([switch]$NoPause, [switch]$Open)
+param([switch]$NoPause, [switch]$Open, [switch]$Hidden)   # -Hidden: no PowerShell window (desktop app)
 
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'scripts\lib\Common.psm1') -Force
@@ -36,7 +39,7 @@ Import-Module (Join-Path $PSScriptRoot 'scripts\lib\Common.psm1') -Force
 $passArgs = @()
 if ($NoPause) { $passArgs += '-NoPause' }
 if ($Open)    { $passArgs += '-Open' }
-Invoke-SelfElevate -ScriptPath $PSCommandPath -Arguments $passArgs
+Invoke-SelfElevate -ScriptPath $PSCommandPath -Arguments $passArgs -Hidden:$Hidden
 
 & (Join-Path $PSScriptRoot 'stop-all.ps1') -NoPause
 $startArgs = @{ NoPause = [bool]$NoPause; Open = [bool]$Open }

@@ -369,7 +369,7 @@ body.setup { display: grid; place-items: center; min-height: 100vh; padding: 24p
 .group .pager { padding: 0 14px 12px; }
 
 /* 19. Activity timeline ---------------------------------------------------------------- */
-.widgets.two { grid-template-columns: minmax(280px, 1fr) minmax(360px, 2fr); }
+.widgets.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .timeline { list-style: none; margin: 0; padding: 0; position: relative; }
 .timeline-item { position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 9px 0 9px 0; }
 .timeline-item + .timeline-item { border-top: 1px solid var(--panel-alt); }
@@ -386,7 +386,7 @@ body.setup { display: grid; place-items: center; min-height: 100vh; padding: 24p
 .timeline-title:hover { color: var(--primary); }
 .timeline-error { color: var(--bad); font-size: 12px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .timeline-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 12px; color: var(--muted); white-space: nowrap; }
-@media (max-width: 960px) { .widgets.two { grid-template-columns: 1fr; } }
+@media (max-width: 960px) { .widgets.two { grid-template-columns: minmax(0, 1fr); } }
 
 /* 20. Settings page --------------------------------------------------------------------- */
 .settings-layout { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 20px; align-items: start; }
@@ -422,9 +422,10 @@ body.setup { display: grid; place-items: center; min-height: 100vh; padding: 24p
 .pin-btn.on svg { fill: #f0b849; stroke: #b8860b; }
 
 /* 22. At a Glance tiles + empty hint ------------------------------------------------------ */
-.glance-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+/* columns follow the card, not the window: up to 3, each at least 150px (no tile ever spills out) */
+.glance-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(max(150px, 30%), 1fr)); gap: 10px; }
 .glance-tile {
-    display: grid; grid-template-columns: 34px 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center;
+    display: grid; grid-template-columns: 34px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 10px; align-items: center; min-width: 0;
     padding: 10px 12px; border: 1px solid var(--line-soft); border-radius: 4px; background: #fff; color: var(--text);
     transition: border-color .15s, box-shadow .15s;
 }
@@ -438,7 +439,6 @@ body.setup { display: grid; place-items: center; min-height: 100vh; padding: 24p
 .glance-tile.warn .glance-icon { background: #fcf9e8; color: #b8860b; }
 .empty-hint { display: flex; align-items: center; gap: 14px; padding: 16px; border: 1px dashed var(--line); border-radius: 4px; background: var(--panel-alt); }
 .empty-hint svg { width: 28px; height: 28px; fill: #f0b849; stroke: #b8860b; stroke-width: 1.5; flex-shrink: 0; }
-@media (max-width: 1200px) { .glance-grid { grid-template-columns: repeat(2, 1fr); } }
 
 /* 23. PHP Extensions page ---------------------------------------------------------------- */
 .ext-switcher { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
