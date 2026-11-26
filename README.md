@@ -14,12 +14,37 @@
  ******************************************************************************/
 -->
 
-# Nginx Manager 2.0
+# Nginx Manager 2.0 - local nginx + multi-PHP development server for Windows and macOS
 
-A portable **nginx + multi-PHP** development server for **Windows and macOS** with a browser-based
-manager. Run any number of PHP versions side by side
-(5.5 up to the newest), give every project its own domain, PHP version and HTTPS
-certificate, and do all of it from the web UI - no hand-editing of config files.
+![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6)
+![macOS](https://img.shields.io/badge/macOS-Homebrew-000000)
+![nginx](https://img.shields.io/badge/nginx-1.26-009639)
+![PHP](https://img.shields.io/badge/PHP-5.5%20to%208.x-777BB4)
+![Local HTTPS](https://img.shields.io/badge/local-HTTPS-2ea44f)
+
+**Nginx Manager** is a portable **local development environment** for PHP: **nginx** plus
+**multiple PHP versions running side by side** (5.5 up to the newest), managed from a clean
+**browser-based control panel** or a **desktop app**. Give every project its own local domain
+(virtual host), its own PHP version and a trusted **local HTTPS (SSL) certificate** - without
+hand-editing nginx or php.ini files. Works with Laravel, Symfony, CodeIgniter and plain PHP.
+
+**Download:** [Windows installer and macOS app - latest release](https://github.com/muthu-digiboost/nginx-manager-2.0/releases/latest)
+(the Windows installer includes nginx and PHP 8.5 and updates itself from the app).
+
+### Why Nginx Manager?
+
+- **Several PHP versions at once** - each project keeps the PHP it needs (e.g. 7.4, 8.3 and 8.5
+  in parallel), switch a site's PHP version with one click.
+- **Local HTTPS that browsers trust** - self-signed certificates created and trusted for you;
+  HTTP redirects to HTTPS automatically.
+- **Safe nginx changes** - every config change is tested with `nginx -t` and rolled back if nginx
+  rejects it, so one mistake never takes the other sites down.
+- **Virtual hosts in seconds** - domain, project folder, PHP version, hosts file entry and
+  certificate in one form.
+- **PHP extensions without php.ini editing** - a checkbox per extension, plus one-click PECL
+  installs (redis, xdebug, apcu, imagick, oci8, ...).
+- An alternative to all-in-one stacks such as XAMPP, WAMP, Laragon or MAMP for developers who
+  want **nginx**, **several PHP versions at once** and **local HTTPS** with no manual config.
 
 | | |
 |---|---|
@@ -86,41 +111,41 @@ Domain names, project folders and group names are blurred.
 
 **Dashboard** - server status, counts, recent activity and the PHP versions you star.
 
-![Dashboard](docs/screenshots/dashboard.jpg)
+![Nginx Manager dashboard - nginx and PHP status, sites, certificates and recent activity](docs/screenshots/dashboard.jpg)
 
 **Sites** - grouped list with search, filters, PHP version, HTTPS and on/off per site.
 
-![Sites](docs/screenshots/sites.jpg)
+![Sites list - local domains grouped, with PHP version, HTTPS and on/off per site](docs/screenshots/sites.jpg)
 
 **Site details** - domains, project folder, PHP version, group and HTTPS; tabs for the raw
 config (checked with `nginx -t`), logs and backups.
 
-![Site details](docs/screenshots/site-details.jpg)
+![Site details - domain, project folder, PHP version, group and HTTPS of one nginx virtual host](docs/screenshots/site-details.jpg)
 
 **Add a site** - domain, project folder, PHP version, framework, group, hosts file and HTTPS.
 
-![Add a site](docs/screenshots/add-site.jpg)
+![Add a new local site - domain, project folder, PHP version, framework, hosts file and HTTPS](docs/screenshots/add-site.jpg)
 
 **Groups** - sites per client, product or team.
 
-![Groups](docs/screenshots/groups.jpg)
+![Groups of local sites per client or project](docs/screenshots/groups.jpg)
 
 **SSL Certificates** - self-signed certificates, trusted by Windows, with renew / untrust.
 
-![SSL Certificates](docs/screenshots/ssl-certificates.jpg)
+![Local SSL certificates trusted by Windows, with expiry, renew and untrust](docs/screenshots/ssl-certificates.jpg)
 
 **PHP Versions** - install any version, updates with rollback, start / stop, auto-start,
 and the PHP the manager itself runs on.
 
-![PHP Versions](docs/screenshots/php-versions.jpg)
+![Multiple PHP versions side by side - install, update, start, stop and auto-start](docs/screenshots/php-versions.jpg)
 
 **PHP Extensions** - checkbox grid per PHP version, plus PECL installs.
 
-![PHP Extensions](docs/screenshots/php-extensions.jpg)
+![PHP extensions per version - checkbox grid and PECL installs](docs/screenshots/php-extensions.jpg)
 
 **Settings** - project folders, extra PATH folders for PHP, certificates, system details.
 
-![Settings](docs/screenshots/settings.jpg)
+![Settings - project folders, extra PATH folders for PHP, OpenSSL and system details](docs/screenshots/settings.jpg)
 
 ## Quick start
 
