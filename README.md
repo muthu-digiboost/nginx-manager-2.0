@@ -17,7 +17,7 @@
 # Nginx Manager 2.0
 
 A portable **nginx + multi-PHP** development server for **Windows and macOS** with a browser-based
-manager in the style of the WordPress admin. Run any number of PHP versions side by side
+manager. Run any number of PHP versions side by side
 (5.5 up to the newest), give every project its own domain, PHP version and HTTPS
 certificate, and do all of it from the web UI - no hand-editing of config files.
 
@@ -65,7 +65,7 @@ certificate, and do all of it from the web UI - no hand-editing of config files.
   (the old certificate stays in use until the new one exists; extra domains are kept),
   switch a site to HTTPS in the same step.
 - **PHP Versions** - install **any** PHP: official Windows builds from 5.5 to the newest
-  (macOS: Homebrew, 5.6 to the newest), WordPress-style updates (Windows: checksum
+  (macOS: Homebrew, 5.6 to the newest), one-click updates (Windows: checksum
   verification and automatic rollback),
   start / stop / restart one or several versions, "Auto-start" per version, and choose
   which PHP the manager itself runs on (checked first, switched back automatically on failure).
