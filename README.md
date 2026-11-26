@@ -129,7 +129,7 @@ Everything runs as your normal user - no `sudo`.
    ```bash
    brew install nginx
    brew tap shivammathur/php
-   brew install shivammathur/php/php@8.4
+   brew install shivammathur/php/php@8.5
    ```
 2. Clone or copy this folder anywhere, then start everything:
    ```bash

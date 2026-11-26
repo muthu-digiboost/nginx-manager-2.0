@@ -116,7 +116,7 @@ final class Server
         }
         $settings = Settings::load();
         if (!$settings->phpVersions()) {
-            $this->say('No PHP found. Install one: brew tap ' . Brew::PHP_TAP . ' && brew install ' . Brew::PHP_TAP . '/php@8.4', 'warn');
+            $this->say('No PHP found. Install one: brew tap ' . Brew::PHP_TAP . ' && brew install ' . Brew::PHP_TAP . '/php@8.5', 'warn');
         }
 
         if (!is_file(Paths::in('ssl', 'localhost', 'ssl.crt', 'server.crt'))) {
