@@ -44,7 +44,7 @@ jobs:
       - name: PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: '8.5'   # the PHP branch the Windows installer bundles (8.5.12)
           extensions: mbstring, openssl
 
       - name: PHP tests
@@ -145,7 +145,7 @@ jobs:
           cache: npm
           cache-dependency-path: desktop/package-lock.json
 
-      - name: Build
+      - name: Test and build
         working-directory: desktop
         shell: bash
         env:
@@ -153,6 +153,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci
+          npm test                                 # the app's own logic, on macOS too
           npm version "${{ needs.release.outputs.version }}" --no-git-tag-version
           node scripts/bundle.js
           npx electron-builder --mac --publish never
