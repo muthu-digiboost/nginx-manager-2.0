@@ -138,6 +138,41 @@ test('list merges ext DLLs and php.ini entries with loaded state', function () {
     assertTrue($list['exif']['enabled'] && !$list['exif']['available']);   // ACTIVE line without DLL: shown (it is broken)
 });
 
+final class ModulesShell extends Shell
+{
+    public function __construct(private readonly string $modules) {}
+    public function run(array $argv, ?string $cwd = null, int $timeout = 60): ShellResult
+    {
+        return new ShellResult(0, in_array('-m', $argv, true) ? "[PHP Modules]\n" . $this->modules . "\n" : 'PHP 7.4.33 (cli)');
+    }
+}
+
+test('PHP 7.x gd2: the DLL php_gd2.dll loads as module "gd" - shown as loaded, not as an error', function () {
+    $base = tempDir();
+    Paths::overrideBase($base);
+    mkdir("$base/php/7.4/ext", 0777, true);
+    file_put_contents("$base/php/7.4/php.ini", "extension_dir = \"ext\"\nextension=gd2\nextension=curl\n");
+    foreach (['php_gd2.dll', 'php_curl.dll'] as $dll) {
+        file_put_contents("$base/php/7.4/ext/$dll", 'x');
+    }
+    JsonStore::write("$base/data/settings.json", ['php' => ['managerVersion' => '7.4', 'versions' => [
+        ['id' => '7.4', 'port' => 9074, 'upstream' => 'php74', 'version' => '7.4.33'],
+    ]]]);
+    $list = [];
+    $m = new ExtensionManager(Settings::load(), new ModulesShell("gd\ncurl"), new NoLaunchJobs(), fn() => true);
+    foreach ($m->list('7.4') as $e) {
+        $list[$e['name']] = $e;
+    }
+    assertTrue($list['gd2']['enabled'] && $list['gd2']['loaded']);
+    // really broken stays broken: PHP does not report gd at all
+    $m = new ExtensionManager(Settings::load(), new ModulesShell("curl"), new NoLaunchJobs(), fn() => true);
+    $list = [];
+    foreach ($m->list('7.4') as $e) {
+        $list[$e['name']] = $e;
+    }
+    assertTrue($list['gd2']['enabled'] && !$list['gd2']['loaded']);
+});
+
 test('internal test extensions are hidden', function () {
     [$base, , , $m] = extFixture();
     file_put_contents("$base/php/8.3/ext/php_zend_test.dll", 'x');

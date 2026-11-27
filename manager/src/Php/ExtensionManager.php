@@ -46,6 +46,18 @@ final class ExtensionManager
     /** Extensions PHP ships only for its own test suite. */
     private const HIDDEN = ['dl_test', 'zend_test'];
 
+    /** DLL names whose PHP module has another name (PHP 7.x ships php_gd2.dll, module "gd"). */
+    private const MODULE_ALIAS = ['gd2' => 'gd'];
+
+    /**
+     * The name "php -m" reports for an extension: gd2 -> gd, and version variants lose their
+     * suffix (oci8_12c / oci8_19 -> oci8).
+     */
+    private static function moduleName(string $name): string
+    {
+        return self::MODULE_ALIAS[$name] ?? (string) preg_replace('/_\d+[a-z]*$/', '', $name);
+    }
+
     /** Parts of PHP itself that "php -m" lists but can never be switched off (macOS list). */
     private const CORE = ['core', 'date', 'hash', 'json', 'pcre', 'random', 'reflection', 'spl', 'standard'];
 
@@ -104,7 +116,7 @@ final class ExtensionManager
                 'available' => isset($dlls[$name]),
                 'enabled'   => $enabled,
                 'zend'      => ($ini[$name]['zend'] ?? false) || in_array($name, self::ZEND, true),
-                'loaded'    => isset($loaded[$name]) || isset($loaded[(string) preg_replace('/_\d+[a-z]*$/', '', $name)]),
+                'loaded'    => isset($loaded[$name]) || isset($loaded[self::moduleName($name)]),
                 'builtin'   => false,
             ];
         }
