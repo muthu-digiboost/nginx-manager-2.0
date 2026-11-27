@@ -20,7 +20,9 @@
  *                   the active tab is kept in the URL hash so reloads stay on it
  *   - Lists         [data-list][data-page-size] = client-side pagination of [data-filter-text] items;
  *                   input[data-list-search="#a, #b"] searches those lists (pager resets to page 1)
- *   - Confirm       form[data-confirm="text"] asks inline (no browser dialog) before submitting
+ *   - Confirm       form[data-confirm="text"] asks inline (no browser dialog) before submitting;
+ *                   form[data-confirm-dialog="Title"] (+ data-confirm-text / -button) opens a
+ *                   confirmation box first (deletes)
  *   - Toggle rows   .toggle-row with a checkbox gets an "on" class for styling
  * Used by: views/layout.php (loaded on every page); page-specific scripts live inline.
  */
@@ -135,6 +137,71 @@
         input.addEventListener('input', function () {
             var q = input.value.trim().toLowerCase();
             lists.forEach(function (l) { if (l._search) { l._search(q); } });
+        });
+    });
+
+    // -- Confirmation box for deletes: form[data-confirm-dialog="Title"] -------------------
+    //    data-confirm-text = the explanation, data-confirm-button = the red button's label.
+    //    An in-page box (no browser confirm() dialog); Cancel, Esc and a click outside close it.
+    function confirmBox(form) {
+        var backdrop = document.createElement('div');
+        backdrop.className = 'confirm-backdrop';
+        var box = document.createElement('div');
+        box.className = 'confirm-box';
+        box.setAttribute('role', 'alertdialog');
+        box.setAttribute('aria-modal', 'true');
+        var title = document.createElement('h3');
+        title.id = 'confirm-title';
+        title.textContent = form.dataset.confirmDialog;
+        box.setAttribute('aria-labelledby', 'confirm-title');
+        var text = document.createElement('p');
+        text.textContent = form.dataset.confirmText || 'This cannot be undone.';
+        var actions = document.createElement('div');
+        actions.className = 'confirm-actions';
+        var cancel = document.createElement('button');
+        cancel.type = 'button';
+        cancel.className = 'btn btn-ghost';
+        cancel.textContent = 'Cancel';
+        var ok = document.createElement('button');
+        ok.type = 'button';
+        ok.className = 'btn btn-danger';
+        ok.textContent = form.dataset.confirmButton || 'Delete';
+        actions.appendChild(cancel);
+        actions.appendChild(ok);
+        box.appendChild(title);
+        box.appendChild(text);
+        box.appendChild(actions);
+        backdrop.appendChild(box);
+        document.body.appendChild(backdrop);
+        var opener = document.activeElement;
+        function close() {
+            document.removeEventListener('keydown', onKey);
+            backdrop.remove();
+            if (opener && opener.focus) { opener.focus(); }
+        }
+        function onKey(ev) {
+            if (ev.key === 'Escape') { close(); }
+            if (ev.key === 'Tab') {   // keep the focus inside the box
+                ev.preventDefault();
+                (document.activeElement === cancel ? ok : cancel).focus();
+            }
+        }
+        cancel.addEventListener('click', close);
+        backdrop.addEventListener('click', function (ev) { if (ev.target === backdrop) { close(); } });
+        document.addEventListener('keydown', onKey);
+        ok.addEventListener('click', function () {
+            ok.disabled = true;
+            cancel.disabled = true;
+            form.dataset.confirmed = '1';
+            HTMLFormElement.prototype.submit.call(form);
+        });
+        cancel.focus();   // the safe choice has the focus
+    }
+    document.querySelectorAll('form[data-confirm-dialog]').forEach(function (form) {
+        form.addEventListener('submit', function (ev) {
+            if (form.dataset.confirmed === '1') { return; }
+            ev.preventDefault();
+            confirmBox(form);
         });
     });
 

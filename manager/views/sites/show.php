@@ -114,7 +114,10 @@ $url = ($p->ssl ? 'https://' : 'http://') . $site->domain();
                             <?= csrf_field() ?>
                             <button type="submit" class="btn btn-ghost btn-block"><?= $site->enabled ? 'Disable site' : 'Enable site' ?></button>
                         </form>
-                        <form method="post" action="/sites/<?= $id ?>/delete" data-confirm="Click again to delete">
+                        <form method="post" action="/sites/<?= $id ?>/delete"
+                              data-confirm-dialog="Delete <?= e($site->domain()) ?>?"
+                              data-confirm-text="The site stops working at once. Its nginx config is moved to backups/deleted (it can be restored from there); your project files are not touched. With the box ticked, the domain is also removed from the hosts file."
+                              data-confirm-button="Delete site">
                             <?= csrf_field() ?>
                             <label class="check small" style="margin-bottom: 6px"><input type="checkbox" name="hosts" value="1" checked> Also remove from the hosts file</label>
                             <button type="submit" class="btn btn-danger btn-block">Delete site</button>

@@ -131,7 +131,10 @@ $lock = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="1
                 </form>
                 <span class="spacer"></span>
                 <?php if ($c->domain !== 'localhost' && !$c->usedBy): ?>
-                    <form method="post" action="/ssl/<?= $f ?>/delete" data-confirm="Click again to delete">
+                    <form method="post" action="/ssl/<?= $f ?>/delete"
+                          data-confirm-dialog="Delete the certificate for <?= e($c->domain) ?>?"
+                          data-confirm-text="No site uses it. It is removed from the trusted certificates and its certificate and key files are deleted. This cannot be undone - a new certificate can be created at any time."
+                          data-confirm-button="Delete certificate">
                         <?= csrf_field() ?>
                         <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                     </form>

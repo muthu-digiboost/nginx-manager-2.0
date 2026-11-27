@@ -107,7 +107,10 @@ ob_start();
                 <button type="button" class="btn btn-ghost btn-sm" data-toggle="#manage-<?= e($g['id']) ?>">Manage sites</button>
                 <button type="button" class="btn btn-ghost btn-sm" data-toggle="#edit-<?= e($g['id']) ?>">Edit</button>
                 <span class="spacer"></span>
-                <form method="post" action="/groups/<?= $gid ?>/delete" data-confirm="Click again to delete">
+                <form method="post" action="/groups/<?= $gid ?>/delete"
+                      data-confirm-dialog="Delete the group &quot;<?= e($g['name']) ?>&quot;?"
+                      data-confirm-text="Only the group is removed. Its <?= count($list) ?> site<?= count($list) === 1 ? '' : 's' ?> keep working and become ungrouped."
+                      data-confirm-button="Delete group">
                     <?= csrf_field() ?>
                     <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                 </form>
