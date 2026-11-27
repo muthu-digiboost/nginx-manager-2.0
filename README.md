@@ -109,9 +109,10 @@ hand-editing nginx or php.ini files. Works with Laravel, Symfony, CodeIgniter an
 
 Domain names, project folders and group names are blurred.
 
-**Dashboard** - server status, counts, recent activity and the PHP versions you star.
+**Dashboard** - server status and counts, a server summary (manager PHP, sites on HTTPS, web
+ports, manager address), recent activity and the PHP versions you star.
 
-![Nginx Manager dashboard - nginx and PHP status, sites, certificates and recent activity](docs/screenshots/dashboard.jpg)
+![Nginx Manager dashboard - nginx and PHP status, sites, certificates, server summary and recent activity](docs/screenshots/dashboard.jpg)
 
 **Sites** - grouped list with search, filters, PHP version, HTTPS and on/off per site.
 
@@ -143,9 +144,10 @@ and the PHP the manager itself runs on.
 
 ![PHP extensions per version - checkbox grid and PECL installs](docs/screenshots/php-extensions.jpg)
 
-**Settings** - project folders, extra PATH folders for PHP, certificates, system details.
+**Settings** - project folders, extra PATH folders for PHP (e.g. the Oracle Instant Client),
+certificates, system details and - in the desktop app - its version with **Check for updates**.
 
-![Settings - project folders, extra PATH folders for PHP, OpenSSL and system details](docs/screenshots/settings.jpg)
+![Settings - project folders, extra PATH folders for PHP, OpenSSL, system details and the desktop app with Check for updates](docs/screenshots/settings.jpg)
 
 ## Quick start
 
