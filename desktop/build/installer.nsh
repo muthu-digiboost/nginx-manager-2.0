@@ -132,6 +132,22 @@ FunctionEnd
   nsExec::ExecToLog '"$INSTDIR\${APP_EXECUTABLE_FILENAME}"'
   Pop $1
   System::Call 'Kernel32::SetEnvironmentVariable(t "NM_SETUP_TEST", i 0)'
+  !insertmacro nmRemoveBundle
+!macroend
+
+; After a VERIFIED setup (the server folder's data\.nm-app-version = this version) the
+; installer's own copy in resources\nginx-manager is not needed any more - it would only
+; duplicate ~105 MB (nginx, PHP, the manager). Removed, except scripts\remove-install.ps1 and
+; scripts\lib\Common.psm1, which the uninstaller runs to delete the server folder. When the
+; setup did NOT succeed, everything is kept (the app can still set up from it). Every update
+; brings a fresh copy, uses it, and removes it again. $0 = the server folder.
+!macro nmRemoveBundle
+  DetailPrint "Removing the installer's copy of the server files (now in $0) ..."
+  nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -Command "$$s = '$0'; $$b = '$INSTDIR\resources\nginx-manager'; $$m = Join-Path $$s 'data\.nm-app-version'; if (-not (Test-Path -LiteralPath $$m) -or ((Get-Content -LiteralPath $$m -Raw).Trim() -ne '${VERSION}')) { exit 2 }; Get-ChildItem -LiteralPath $$b -Force | Where-Object { $$_.Name -ne 'scripts' } | Remove-Item -Recurse -Force; Get-ChildItem -LiteralPath (Join-Path $$b 'scripts') -Force | Where-Object { @('remove-install.ps1', 'lib') -notcontains $$_.Name } | Remove-Item -Recurse -Force; Get-ChildItem -LiteralPath (Join-Path $$b 'scripts\lib') -Force | Where-Object { $$_.Name -ne 'Common.psm1' } | Remove-Item -Recurse -Force; exit 0"`
+  Pop $1
+  ${If} $1 == "2"
+    DetailPrint "Kept the installer's copy: the setup in $0 was not confirmed"
+  ${EndIf}
 !macroend
 
 ; Install, update and uninstall: close the app if it runs - WITHOUT the "Nginx Manager cannot

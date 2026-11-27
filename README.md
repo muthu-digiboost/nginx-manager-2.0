@@ -259,8 +259,11 @@ The server folder sits next to the app folder, not inside it, because every upda
 the app folder completely. The installer (already Administrator) sets it up and refreshes the
 code on every update; it keeps the normal Program Files protection - users can read it, only
 Administrators can change it, so nobody can slip code into the scripts that run elevated.
-nginx and PHP run as Administrator and write their logs, sites and certificates there. Only
-if the installer's setup did not happen, the app sets up in
+nginx and PHP run as Administrator and write their logs, sites and certificates there. The
+installer brings these files in `C:\Program Files\Nginx Manager\resources\nginx-manager`; once
+the server folder is set up (checked), that copy is removed again - no duplicate ~105 MB of
+nginx and PHP - except the two small files the uninstaller needs. Only
+if the installer's setup did not happen, it is kept and the app sets up in
 `%LOCALAPPDATA%\Nginx Manager Server` instead, without asking. A setup made by an
 older version (`C:\NginxManager`) or a machine that already runs the manager is found and used;
 nothing is copied. The folder can be changed later from the tray icon. PHP needs the Microsoft
